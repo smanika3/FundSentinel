@@ -22,7 +22,7 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 
 ## Phase 0 — Setup (today, ~1–2 h)
 
-- [ ] Every teammate: log in via SSO portal, confirm **us-east-1**, open Sonnet 5 + Opus 5 in the Bedrock Playground
+- [ ] Every teammate: follow [SETUP.md](SETUP.md) (portal login, tools, CLI profile, model test, clone, data)
 - [x] Model IDs verified by live test call: `us.anthropic.claude-sonnet-5`, `us.anthropic.claude-opus-5`, `amazon.titan-embed-text-v2:0`. **`global.*` IDs are denied** — fix the AgentCore template default.
 - [x] Model IDs in [config/models.json](config/models.json); bucket + DB ARNs in [config/aws.json](config/aws.json). Every agent reads from these, never hardcode.
 - [x] Local tools (Shrey's laptop): Node 26, uv, Python 3.12 via `uv python install 3.12`. Teammates: check `node --version` (20+), `uv --version`, `npx @aws/agentcore --version`
