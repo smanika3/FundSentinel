@@ -38,7 +38,9 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
       ```
 - [x] S3 bucket **`fundsentinel-736265634398-us-east-1`** (encrypted, versioned, private). Prefixes `raw/ clean/ metadata/ provenance/ evidence/ snapshots/ quarantine/ reports/` get created on first write.
 - [x] Aurora Serverless v2 Postgres 16.14 (verified with a Data API query) **`fundsentinel-db`** (database `fundsentinel`), accessed through the **RDS Data API** (HTTPS + IAM, no VPC/network setup, password stays in Secrets Manager). Code calls `rds-data` `execute_statement` with the cluster ARN + secret ARN from the stack outputs.
-- [ ] Get the Kaggle fund dataset, upload to `s3://…/raw/`
+- [x] Datasets in `s3://…/raw/`: Yahoo US, India, TEFAS (Turkey), SEC ticker file. Details + quirks in [data/SOURCES.md](data/SOURCES.md)
+- [ ] Morningstar Europe: needs a Kaggle login (403 anonymously). Download manually or add a Kaggle API token
+- [ ] Later: SEC Risk/Return (two quarters, for Radar-lite), SDV synthetic funds for the scale test
 - [ ] Make test files: `funds_alt_columns.csv` (renamed columns), `funds_broken.csv`, `funds_v1.csv` + `funds_v2.csv` (Radar-lite: fee 0.60→1.10%, benchmark change, date change)
 
 ## Phase 1 — Basic pipeline end to end (today → Thu morning) ⭐ most important
