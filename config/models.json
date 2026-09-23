@@ -1,0 +1,5 @@
+{
+  "sonnet": "us.anthropic.claude-sonnet-5",
+  "opus": "us.anthropic.claude-opus-5",
+  "embeddings": "amazon.titan-embed-text-v2:0"
+}

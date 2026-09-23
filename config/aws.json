@@ -1,0 +1,11 @@
+{
+  "region": "us-east-1",
+  "profile": "fundsentinel",
+  "bucket": "fundsentinel-736265634398-us-east-1",
+  "db": {
+    "cluster_arn": "arn:aws:rds:us-east-1:736265634398:cluster:fundsentinel-db",
+    "secret_arn": "arn:aws:secretsmanager:us-east-1:736265634398:secret:rds!cluster-b6ba5a23-8c1b-4e30-890b-4ce7350f250e-pJtxGx",
+    "database": "fundsentinel"
+  },
+  "repo_clone_url": "https://git-codecommit.us-east-1.amazonaws.com/v1/repos/fundsentinel"
+}

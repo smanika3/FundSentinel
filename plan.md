@@ -24,15 +24,20 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 
 - [ ] Every teammate: log in via SSO portal, confirm **us-east-1**, open Sonnet 5 + Opus 5 in the Bedrock Playground
 - [x] Model IDs verified by live test call: `us.anthropic.claude-sonnet-5`, `us.anthropic.claude-opus-5`, `amazon.titan-embed-text-v2:0`. **`global.*` IDs are denied** — fix the AgentCore template default.
-- [ ] Put those IDs in `config/models.json` so every agent reads them from one place
-- [ ] Check local tools: `node --version` (20+), `python3 --version` (3.10–3.12), `uv --version`, `npx @aws/agentcore --version`
-- [ ] Create CodeCommit repo `fundsentinel`, set the credential helper, clone it, push this folder's docs
+- [x] Model IDs in [config/models.json](config/models.json); bucket + DB ARNs in [config/aws.json](config/aws.json). Every agent reads from these, never hardcode.
+- [x] Local tools (Shrey's laptop): Node 26, uv, Python 3.12 via `uv python install 3.12`. Teammates: check `node --version` (20+), `uv --version`, `npx @aws/agentcore --version`
+- [x] All infra is one CloudFormation stack, **`fundsentinel-phase0`** ([infra/phase0.yaml](infra/phase0.yaml)). Change the template and update the stack; don't click-create resources.
+- [x] CodeCommit repo **`fundsentinel`** created, docs pushed to `main`
+      Teammates clone with (scoped to CodeCommit only, won't touch GitHub creds):
       ```
-      git config --global credential.helper '!aws codecommit credential-helper $@'
-      git config --global credential.UseHttpPath true
+      K='credential.https://git-codecommit.us-east-1.amazonaws.com.helper'
+      git config --global --add "$K" ''
+      git config --global --add "$K" '!aws codecommit credential-helper $@'
+      git config --global credential.https://git-codecommit.us-east-1.amazonaws.com.UseHttpPath true
+      git clone https://git-codecommit.us-east-1.amazonaws.com/v1/repos/fundsentinel
       ```
-- [ ] Create S3 bucket `fundsentinel-<account>-us-east-1` with prefixes `raw/ clean/ metadata/ provenance/ evidence/ snapshots/ quarantine/ reports/`
-- [ ] Create RDS (smallest Postgres instance) — or confirm with organisers it's allowed; fallback is SQLite for the demo
+- [x] S3 bucket **`fundsentinel-736265634398-us-east-1`** (encrypted, versioned, private). Prefixes `raw/ clean/ metadata/ provenance/ evidence/ snapshots/ quarantine/ reports/` get created on first write.
+- [x] Aurora Serverless v2 Postgres 16.14 (verified with a Data API query) **`fundsentinel-db`** (database `fundsentinel`), accessed through the **RDS Data API** (HTTPS + IAM, no VPC/network setup, password stays in Secrets Manager). Code calls `rds-data` `execute_statement` with the cluster ARN + secret ARN from the stack outputs.
 - [ ] Get the Kaggle fund dataset, upload to `s3://…/raw/`
 - [ ] Make test files: `funds_alt_columns.csv` (renamed columns), `funds_broken.csv`, `funds_v1.csv` + `funds_v2.csv` (Radar-lite: fee 0.60→1.10%, benchmark change, date change)
 
