@@ -1,0 +1,113 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: FundSentinel Phase 0 - CodeCommit repo, S3 data bucket, Aurora Serverless v2 Postgres with Data API
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-03eb1d703f37fd96f
+  PrivateSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Default: subnet-069e89cdfe58c4d4f,subnet-0cb4eca40aa0b2730,subnet-025d3951535c17165
+
+Resources:
+  Repo:
+    Type: AWS::CodeCommit::Repository
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RepositoryName: fundsentinel
+      RepositoryDescription: FundSentinel - agentic fund approval pipeline (TIAA x ASU Spark Challenge)
+
+  DataBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName: !Sub fundsentinel-${AWS::AccountId}-${AWS::Region}
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      OwnershipControls:
+        Rules:
+          - ObjectOwnership: BucketOwnerEnforced
+
+  DataBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref DataBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: DenyInsecureTransport
+            Effect: Deny
+            Principal: "*"
+            Action: s3:*
+            Resource:
+              - !GetAtt DataBucket.Arn
+              - !Sub ${DataBucket.Arn}/*
+            Condition:
+              Bool:
+                aws:SecureTransport: "false"
+
+  # Access is via the RDS Data API (HTTPS + IAM), so the database needs no inbound network rules.
+  DbSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: FundSentinel Aurora - no inbound, Data API only
+      VpcId: !Ref VpcId
+
+  DbSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupName: fundsentinel-db
+      DBSubnetGroupDescription: FundSentinel Aurora private subnets
+      SubnetIds: !Ref PrivateSubnetIds
+
+  DbCluster:
+    Type: AWS::RDS::DBCluster
+    DeletionPolicy: Snapshot
+    UpdateReplacePolicy: Snapshot
+    Properties:
+      DBClusterIdentifier: fundsentinel-db
+      Engine: aurora-postgresql
+      EngineVersion: "16.14"
+      DatabaseName: fundsentinel
+      MasterUsername: fundsentinel_admin
+      ManageMasterUserPassword: true
+      EnableHttpEndpoint: true
+      StorageEncrypted: true
+      BackupRetentionPeriod: 1
+      DBSubnetGroupName: !Ref DbSubnetGroup
+      VpcSecurityGroupIds:
+        - !Ref DbSecurityGroup
+      ServerlessV2ScalingConfiguration:
+        MinCapacity: 0.5
+        MaxCapacity: 4
+
+  DbInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: fundsentinel-db-1
+      DBClusterIdentifier: !Ref DbCluster
+      DBInstanceClass: db.serverless
+      Engine: aurora-postgresql
+
+Outputs:
+  RepoCloneUrlHttp:
+    Value: !GetAtt Repo.CloneUrlHttp
+  BucketName:
+    Value: !Ref DataBucket
+  DbClusterArn:
+    Value: !GetAtt DbCluster.DBClusterArn
+  DbSecretArn:
+    Value: !GetAtt DbCluster.MasterUserSecret.SecretArn
+  DbName:
+    Value: fundsentinel

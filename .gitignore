@@ -1,0 +1,23 @@
+# Organiser materials (not ours to redistribute)
+*.pptx
+*.pdf
+*.docx
+
+# Secrets and credentials - never commit
+.env
+.env.*
+*.pem
+*credentials*
+.aws/
+
+# Local data (source data lives in S3)
+data/raw/
+*.parquet
+
+# Python / Node / tooling
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+.DS_Store
+.streamlit/secrets.toml
