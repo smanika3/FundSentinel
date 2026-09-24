@@ -1,6 +1,6 @@
 [
   {
-    "fund_id": "PGOEX",
+    "fund_id": "KDHAX",
     "field": "expense_ratio",
     "old": 0.006,
     "new": 0.011,
@@ -11,9 +11,9 @@
     ]
   },
   {
-    "fund_id": "PGOEX",
+    "fund_id": "KDHAX",
     "field": "benchmark",
-    "old": "Russell 1000 Growth TR USD",
+    "old": "Russell 1000 Value TR USD",
     "new": "S&P 500 TR USD",
     "materiality": "material",
     "reopen": [
@@ -23,7 +23,7 @@
     ]
   },
   {
-    "fund_id": "TWUAX",
+    "fund_id": "KCIIX",
     "field": "risk_rating",
     "old": 4,
     "new": 5,
@@ -34,9 +34,9 @@
     ]
   },
   {
-    "fund_id": "GCVRX",
+    "fund_id": "JUEZX",
     "field": "total_net_assets",
-    "old": 409138784.0,
+    "old": 19884931072.0,
     "new": 40000000.0,
     "materiality": "material",
     "reopen": [
@@ -45,10 +45,10 @@
     ]
   },
   {
-    "fund_id": "IEOHX",
+    "fund_id": "JVAIX",
     "field": "fund_long_name",
-    "old": "Eaton Vance Tax-Managed Equity Asset Allocation Fund Class C",
-    "new": "Eaton Vance Tax-Managed Equity Asset Allocation Fund Class C (Renamed)",
+    "old": "Franklin Templeton Premier Large Value Fund",
+    "new": "Franklin Templeton Premier Large Value Fund (Renamed)",
     "materiality": "ambiguous",
     "reopen": [
       "compliance?"

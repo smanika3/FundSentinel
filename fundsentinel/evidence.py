@@ -76,6 +76,8 @@ def _grounded(value, vals: set) -> bool:
 def check(verdict: Verdict, vals: set, record: Record) -> list[str]:
     """Returns a list of problems; empty list means the evidence is grounded."""
     problems = []
+    if len((verdict.reason or "").strip()) < 25:
+        problems.append("the reason is not an explanation; say in plain sentences why you reached this verdict")
     if verdict.verdict in ("pass", "concern", "fail") and not verdict.evidence:
         problems.append("the verdict cites no evidence")
     src = record.get("source_ref")

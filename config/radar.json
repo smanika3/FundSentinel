@@ -1,0 +1,29 @@
+{
+  "note": "Radar-lite routing map: which reviewers check which canonical field. The materiality agent starts from this map and may add or remove reviewers with a reason; a change that crosses a policy threshold always reopens its mapped reviewers.",
+  "field_reviewers": {
+    "expense_ratio": ["finance"],
+    "category_expense_ratio": ["finance"],
+    "return_1y": ["analyst"],
+    "return_3y": ["analyst"],
+    "return_5y": ["analyst"],
+    "category_return_5y": ["analyst"],
+    "benchmark": ["analyst", "suitability"],
+    "inception_date": ["analyst", "compliance"],
+    "fund_age_years": ["analyst", "compliance"],
+    "risk_score": ["suitability"],
+    "category": ["compliance", "analyst", "suitability"],
+    "total_net_assets": ["compliance"],
+    "currency": ["compliance", "finance"],
+    "fund_name": ["compliance"],
+    "fund_family": ["compliance"],
+    "ticker": ["compliance"],
+    "as_of_date": []
+  },
+  "evidence_depends_on": {
+    "premium_over_category": ["expense_ratio", "category_expense_ratio"],
+    "return_5y_minus_category": ["return_5y", "category_return_5y"],
+    "history_years": ["inception_date", "fund_age_years"],
+    "total_net_assets_usd": ["total_net_assets", "currency"]
+  },
+  "numeric_tolerance": 1e-9
+}

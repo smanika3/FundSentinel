@@ -1,0 +1,22 @@
+fund_symbol,fund_long_name,fund_category,benchmark,expense_ratio,category_expense_ratio,risk_rating,return_1y,return_5y,category_return_5y,total_net_assets,inception_date,as_of_date
+KLCAX,Fidelity Investments Beacon Large Growth Fund,Large Growth,Russell 1000 Growth TR USD,0.0109,0.0099,4,0.2797,0.1562,0.2041,4634104320.0,2007-12-05,2021-10-29
+JVLAX,Franklin Templeton Compass Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0106,0.0094,4,0.4302,0.0945,0.1236,12557949952.0,2008-12-22,2021-10-29
+NWLAX,Fidelity Investments Summit Large Growth Fund,Large Growth,Russell 1000 Growth TR USD,0.0109,0.0099,4,0.93,0.89,0.2041,4634104320.0,2007-12-05,2021-10-29
+KCSSX,Meeder Funds Keel Small Blend Fund,Small Blend,Russell 2000 TR USD,0.0115,0.0103,3,0.4923,0.0912,0.1379,121611904.0,2015-07-14,2021-10-29
+QZTVX,Franklin Templeton Summit Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0089,0.0094,4,0.4533,0.0948,0.1236,11083456512.0,2005-02-28,2021-10-29
+TXEFX,T. Rowe Price Large Growth Fund,Municipal Bond,Bloomberg Municipal Bond TR USD,0.0081,0.0094,4,0.4339,0.0972,0.1236,12557949952.0,1997-01-02,2021-10-29
+MBAIX,Franklin Templeton Legacy Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0089,0.0094,4,0.4533,0.0948,0.1236,11083456512.0,2005-02-28,2019-10-29
+XOEF,Federated Summit Small Blend Fund,Small Blend,Russell 2000 TR USD,60 bps,0.0103,3,0.5214,0.1054,0.1379,1142056832.0,2011-11-01,2021-10-29
+LGLV,Fidelity Investments Vista Foreign Large Blend Fund,Foreign Large Blend,MSCI ACWI Ex USA NR USD,0.012,0.0095,4,0.3216,0.0908,0.0979,130075696.0,2021-10-08,2021-10-29
+KCISX,Fidelity Investments Anchor Foreign Large Blend Fund,Foreign Large Blend,MSCI ACWI Ex USA NR USD,0.012,0.0095,4,0.3216,0.0908,0.0979,130075696.0,2015-07-14,2021-10-29
+WMMAX,ProShares Ultra Keel Small Blend 2x Fund,Small Blend,Russell 2000 TR USD,0.0115,0.0103,3,0.4923,0.0912,0.1379,121611904.0,2015-07-14,2021-10-29
+JVLIX,Franklin Templeton Horizon Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0081,0.0094,4,0.4339,0.0972,0.1236,12557949952.0,1997-01-02,2021-10-29
+MOJOX,Federated Vista Small Blend Fund,Small Blend,Russell 2000 TR USD,,0.0103,3,0.5214,0.1054,0.1379,1142056832.0,2011-11-01,2021-10-29
+LGPIX,Pinnacle Horizon Large Value Fund,Large Value,Russell 1000 Value TR USD,0.045,0.0094,4,0.4339,0.0972,0.1236,12557949952.0,1997-01-02,2021-10-29
+JVASX,Franklin Templeton Meridian Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0089,0.0094,4,0.4533,0.0948,0.1236,11083456512.0,2005-02-28,2021-10-29
+JUSMX,Federated Crest Small Blend Fund,Small Blend,Russell 2000 TR USD,0.0071,0.0103,3,0.5214,0.1054,0.1379,1142056832.0,2011-11-01,2021-10-29
+KCVSX,Meeder Funds Keystone Large Value Fund,Large Value,Russell 1000 Value TR USD,0.01,0.0094,4,0.4063,0.1046,0.1236,114814904.0,2015-07-14,2021-10-29
+TMSL,Fidelity Investments Frontier Emerging Markets Small Growth Fund,Emerging Markets Small Growth,MSCI EM Small Cap NR USD,0.012,0.0095,1,0.3216,0.0908,0.0979,130075696.0,2015-07-14,2021-10-29
+LSGR,Meeder Funds Summit Large Value Fund,Large Value,Russell 1000 Value TR USD,0.01,0.0094,4,0.4063,0.1046,0.1236,18500000.0,2015-07-14,2021-10-29
+ETLIX,Fidelity Investments Pinnacle Large Growth Fund,Large Growth,Russell 1000 Growth TR USD,0.0074,0.0052,4,0.2797,0.1562,0.2041,4634104320.0,2007-12-05,2021-10-29
+FACNX,Franklin Templeton Compass Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0106,0.0094,4,0.4302,0.0945,0.1236,12557949952.0,2008-12-22,2021-10-29

@@ -141,6 +141,26 @@ def build_supervisor(fr: FundReview) -> Agent:
                  structured_output_model=SupervisorReport, callback_handler=None, name="supervisor")
 
 
+def ai_evidence_check(fr: "FundReview", only: set[str] | None = None):
+    """Evidence checker, AI half: does each reasoning follow from its evidence? One send-back each."""
+    try:
+        ev_agent = build_evidence_agent()
+        payload = [{"reviewer": v.reviewer, "verdict": v.verdict, "reason": v.reason,
+                    "evidence": [e.model_dump() for e in v.evidence]}
+                   for n, v in fr.verdicts.items() if only is None or n in only]
+        if not payload:
+            return
+        checks = ev_agent("Check these verdicts:\n" + json.dumps(payload, default=str)).structured_output.checks
+        for c in checks:
+            if not c.supported and c.reviewer in fr.verdicts and (only is None or c.reviewer in only):
+                fr.run_reviewer(c.reviewer, note=f"The Evidence checker says your reasoning is not supported: {c.note}",
+                                requested_by="evidence_checker")
+    except Exception as e:
+        if common.is_auth_error(e):
+            raise common.LoginExpired("AWS login expired. Run: aws login --profile fundsentinel") from e
+        fr.log("evidence_checker", "error", None, f"{type(e).__name__}: AI evidence check skipped")
+
+
 # ---------------- One fund, end to end ----------------
 
 def review_fund(fund_id: str, record: Record, reviewers: dict[str, Agent], owner: Agent,
@@ -173,20 +193,7 @@ def review_fund(fund_id: str, record: Record, reviewers: dict[str, Agent], owner
             if n not in fr.verdicts:
                 fr.log("supervisor", "skipped", n, "Compliance failed, so the fund is rejected regardless.")
 
-    # Evidence checker, AI half: does each reasoning follow from its evidence? One send-back each.
-    try:
-        ev_agent = build_evidence_agent()
-        payload = [{"reviewer": v.reviewer, "verdict": v.verdict, "reason": v.reason,
-                    "evidence": [e.model_dump() for e in v.evidence]} for v in fr.verdicts.values()]
-        checks = ev_agent("Check these verdicts:\n" + json.dumps(payload, default=str)).structured_output.checks
-        for c in checks:
-            if not c.supported and c.reviewer in fr.verdicts:
-                fr.run_reviewer(c.reviewer, note=f"The Evidence checker says your reasoning is not supported: {c.note}",
-                                requested_by="evidence_checker")
-    except Exception as e:
-        if common.is_auth_error(e):
-            raise common.LoginExpired("AWS login expired. Run: aws login --profile fundsentinel") from e
-        fr.log("evidence_checker", "error", None, f"{type(e).__name__}: AI evidence check skipped")
+    ai_evidence_check(fr)
 
     verdicts = [fr.verdicts[n] for n in REVIEWER_NAMES if n in fr.verdicts]
     try:

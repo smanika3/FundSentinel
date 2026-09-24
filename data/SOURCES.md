@@ -33,7 +33,7 @@ Check each Kaggle dataset's licence on its page before submission and credit all
 
 Built by `scripts/make_test_files.py` from real Yahoo rows with a fixed seed. Each has an answer key so agents are scored, not eyeballed:
 `funds_alt_columns.csv` + `alt_columns_answer_key.json` (Profiler), `funds_broken.csv` + `broken_answer_key.json` (Quality / SelfHeal, 13 planted issues),
-`funds_v1.csv` / `funds_v2.csv` + `changes_answer_key.json` (Radar-lite). The `benchmark` column in v1/v2 is mock, assigned by category.
+`funds_v1.csv` / `funds_v2.csv` + `changes_answer_key.json` (Radar-lite). The `benchmark` column in v1/v2 is mock, assigned by category, and fund names in v1/v2 are scenario names built from family + category (Yahoo's own names are unreliable, see below).
 
 ## Known problem in the Yahoo data
 

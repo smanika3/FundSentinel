@@ -35,6 +35,14 @@ SCHEMA_SQL = [
     """CREATE TABLE IF NOT EXISTS column_metadata (
         run_id text, name text, kind text, source_column text, how text, coverage real, examples jsonb,
         flagged_records int, description text, unit text, caveats text, PRIMARY KEY (run_id, name))""",
+    """CREATE TABLE IF NOT EXISTS radar_changes (
+        run_id text, change_id text, baseline_run_id text, fund_id text, field text, old_value text, new_value text,
+        materiality text, reason text, decided_by text, crosses_threshold jsonb, reopened jsonb,
+        PRIMARY KEY (run_id, change_id))""",
+    """CREATE TABLE IF NOT EXISTS stale_evidence (
+        run_id text, fund_id text, reviewer text, field text, old_value text, rule text, source_ref text,
+        PRIMARY KEY (run_id, fund_id, reviewer, field))""",
+    "ALTER TABLE runs ADD COLUMN IF NOT EXISTS baseline_run_id text",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS dataset_description text",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS transform jsonb",
     "ALTER TABLE funds ADD COLUMN IF NOT EXISTS status text",
@@ -213,3 +221,24 @@ def save_s3(summary: dict, results: list[dict]):
     quarantined = [r["record"] for r in results if r["decision"]["decision"] == "quarantined"]
     if quarantined:
         put(f"quarantine/{run_id}/records.jsonl", jsonl(quarantined))
+
+
+def save_radar(summary: dict, results: list[dict]):
+    run_id, base = summary["run_id"], summary["baseline_run_id"]
+    sql("UPDATE runs SET baseline_run_id = :b WHERE run_id = :r", {"b": base, "r": run_id})
+    routing = summary["radar"]["routing"]
+    changes = [{"run_id": run_id, "change_id": c["change_id"], "baseline_run_id": base, "fund_id": c["fund_id"],
+                "field": c["field"], "old_value": None if c["old"] is None else str(c["old"]),
+                "new_value": None if c["new"] is None else str(c["new"]), "materiality": c["materiality"],
+                "reason": c["reason"], "decided_by": c["decided_by"], "crosses_threshold": c["crosses_policy_threshold"],
+                "reopened": routing.get(c["fund_id"], {}).get("reviewers", [])} for c in summary["radar"]["changes"]]
+    sql("DELETE FROM radar_changes WHERE run_id = :r", {"r": run_id})
+    _batch("""INSERT INTO radar_changes VALUES (:run_id, :change_id, :baseline_run_id, :fund_id, :field, :old_value,
+                :new_value, :materiality, :reason, :decided_by, :crosses_threshold, :reopened)""", changes)
+    stale = {(r["fund_id"], s["reviewer"], s["field"]): {"run_id": run_id, "fund_id": r["fund_id"], "reviewer": s["reviewer"],
+             "field": s["field"], "old_value": None if s["old_value"] is None else str(s["old_value"]),
+             "rule": s["rule"], "source_ref": s["source_ref"]}
+             for r in results for s in r["radar"]["stale_evidence"]}
+    sql("DELETE FROM stale_evidence WHERE run_id = :r", {"r": run_id})
+    _batch("""INSERT INTO stale_evidence VALUES (:run_id, :fund_id, :reviewer, :field, :old_value, :rule, :source_ref)""",
+           list(stale.values()))

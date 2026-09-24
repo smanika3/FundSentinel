@@ -1,0 +1,21 @@
+{
+  "source": "test/funds_v1.csv and funds_v2.csv",
+  "author": "hand-written (the two versions must be mapped identically for Radar-lite)",
+  "fields": {
+    "fund_id": {"column": "fund_symbol", "confidence": 1.0},
+    "ticker": {"column": "fund_symbol", "confidence": 1.0},
+    "fund_name": {"column": "fund_long_name", "confidence": 1.0},
+    "category": {"column": "fund_category", "confidence": 1.0},
+    "benchmark": {"column": "benchmark", "confidence": 1.0},
+    "currency": {"constant": "USD", "confidence": 1.0},
+    "expense_ratio": {"column": "expense_ratio", "unit": "fraction", "confidence": 1.0},
+    "category_expense_ratio": {"column": "category_expense_ratio", "unit": "fraction", "confidence": 1.0},
+    "risk_score": {"column": "risk_rating", "confidence": 1.0},
+    "return_1y": {"column": "return_1y", "unit": "fraction", "confidence": 1.0},
+    "return_5y": {"column": "return_5y", "unit": "fraction", "confidence": 1.0},
+    "category_return_5y": {"column": "category_return_5y", "unit": "fraction", "confidence": 1.0},
+    "total_net_assets": {"column": "total_net_assets", "confidence": 1.0},
+    "inception_date": {"column": "inception_date", "confidence": 1.0},
+    "as_of_date": {"column": "as_of_date", "confidence": 1.0}
+  }
+}

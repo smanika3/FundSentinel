@@ -119,9 +119,19 @@ def broken(pool: pd.DataFrame, rng: random.Random) -> None:
 
 
 def versions(pool: pd.DataFrame, rng: random.Random) -> None:
-    rows = pool[pool.fund_category.isin(BENCHMARKS)].sample(20, random_state=SEED + 2).reset_index(drop=True)
+    # Radar-lite story needs clean identities: unique names whose first word matches the fund family's first word.
+    full = pd.read_csv(ROOT / "data/raw/yahoo_us/MutualFunds.csv", usecols=["fund_long_name"], low_memory=False)
+    shared = set(full.fund_long_name.value_counts()[lambda c: c > 1].index)
+    clean = pool[~pool.fund_long_name.isin(shared)
+                 & pool.apply(lambda r: str(r.fund_family).split()[0].lower() in str(r.fund_long_name).lower(), axis=1)]
+    rows = clean[clean.fund_category.isin(BENCHMARKS)].sample(20, random_state=SEED + 2).reset_index(drop=True)
+    # Scenario names: Yahoo's own names are often attached to the wrong ticker, which would muddy the Radar-lite story.
+    styles = ["Select", "Core", "Focus", "Premier", "Heritage", "Dynamic", "Summit", "Pioneer", "Horizon", "Keystone",
+              "Meridian", "Beacon", "Anchor", "Compass", "Keel", "Crest", "Harbor Point", "Sterling", "Atlas", "Liberty"]
+    scenario_names = [f"{' '.join(str(f).split()[:2])} {styles[i]} {c} Fund"
+                      for i, (f, c) in enumerate(zip(rows.fund_family, rows.fund_category))]
     v1 = pd.DataFrame({
-        "fund_symbol": rows.fund_symbol, "fund_long_name": rows.fund_long_name, "fund_category": rows.fund_category,
+        "fund_symbol": rows.fund_symbol, "fund_long_name": scenario_names, "fund_category": rows.fund_category,
         "benchmark": rows.fund_category.map(BENCHMARKS),
         "expense_ratio": rows.fund_annual_report_net_expense_ratio,
         "category_expense_ratio": rows.category_annual_report_net_expense_ratio,
