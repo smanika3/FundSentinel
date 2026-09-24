@@ -22,6 +22,15 @@ DECISION_LABEL = {"approved": "Approved", "approved_with_conditions": "Approved 
 VERDICT_ICON = {"pass": "✅ pass", "concern": "⚠️ concern", "fail": "❌ fail", "cannot_assess": "❔ cannot assess"}
 
 
+@st.cache_resource
+def _schema_ready() -> bool:
+    store.init_db()  # idempotent: adds any tables/columns newer code expects
+    return True
+
+
+_schema_ready()
+
+
 @st.cache_data(ttl=30)
 def q(sql: str, **params) -> pd.DataFrame:
     return pd.DataFrame(store.sql(sql, params or None))
@@ -48,8 +57,52 @@ decisions = q("""SELECT d.fund_id, f.fund_name, f.category, d.decision, d.decide
                  FROM decisions d JOIN funds f USING (run_id, fund_id) WHERE d.run_id = :r ORDER BY d.fund_id""", r=run_id)
 verdicts = q("SELECT fund_id, reviewer, verdict, reason, evidence, confidence FROM verdicts WHERE run_id = :r", r=run_id)
 
-tab_decisions, tab_fund, tab_quality, tab_dict, tab_mapping = st.tabs(
+extra = q("SELECT baseline_run_id, redteam FROM runs WHERE run_id = :r", r=run_id)
+baseline_id = extra["baseline_run_id"].iloc[0] if not extra.empty else None
+redteam = _json(extra["redteam"].iloc[0]) if not extra.empty and extra["redteam"].iloc[0] else None
+tab_names = ["Decisions", "Fund story", "Data quality", "Data dictionary", "Column mapping"]
+if baseline_id:
+    tab_names.insert(1, "Changes (Radar-lite)")
+if redteam:
+    tab_names.insert(1, "RedTeam scorecard")
+tabs = dict(zip(tab_names, st.tabs(tab_names)))
+tab_decisions, tab_fund, tab_quality, tab_dict, tab_mapping = (tabs[n] for n in
     ["Decisions", "Fund story", "Data quality", "Data dictionary", "Column mapping"])
+
+if baseline_id:
+    with tabs["Changes (Radar-lite)"]:
+        st.markdown(f"Updated file compared with baseline run `{baseline_id}`. Only reviews affected by a change are reopened.")
+        ch = q("""SELECT fund_id, field, old_value, new_value, materiality, decided_by, reason, reopened
+                  FROM radar_changes WHERE run_id = :r ORDER BY fund_id, change_id""", r=run_id)
+        before = q("SELECT fund_id, decision AS before FROM decisions WHERE run_id = :b", b=baseline_id)
+        after = q("SELECT fund_id, decision AS after FROM decisions WHERE run_id = :r", r=run_id)
+        ba = after.merge(before, on="fund_id", how="left")
+        reopened = ch.groupby("fund_id").reopened.first().map(lambda v: ", ".join(_json(v)) or "none")
+        ba["reopened"] = ba.fund_id.map(reopened).fillna("none")
+        ba["changed"] = ba.before != ba.after
+        n_reopen = sum(len(_json(v)) for v in ch.groupby("fund_id").reopened.first())
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Changes detected", len(ch))
+        c2.metric("Material / ambiguous", int((ch.materiality != "routine").sum()))
+        c3.metric("Reviews reopened", f"{n_reopen} of {4 * len(ba)}")
+        c4.metric("Decisions changed", int(ba.changed.sum()))
+        st.markdown("#### Before and after")
+        st.dataframe(ba[["fund_id", "before", "after", "reopened"]], width="stretch", hide_index=True)
+        st.markdown("#### Every change and how it was judged")
+        st.dataframe(ch.drop(columns=["reopened"]), width="stretch", hide_index=True)
+        stale = q("SELECT fund_id, reviewer, field, old_value, rule FROM stale_evidence WHERE run_id = :r ORDER BY fund_id", r=run_id)
+        if not stale.empty:
+            st.markdown("#### Evidence marked stale")
+            st.dataframe(stale, width="stretch", hide_index=True)
+
+if redteam:
+    with tabs["RedTeam scorecard"]:
+        c1, c2 = st.columns(2)
+        c1.metric("Tricks caught", f"{redteam['caught']} of {redteam['planted']}")
+        c2.metric("Real funds wrongly rejected", f"{len(redteam['false_positives'])} of {redteam['real_funds']}")
+        st.caption("What counts as caught is fixed in config/redteam.json, not decided by the agents. Misses are shown.")
+        for line in redteam["detail"]:
+            st.markdown(("✅ " if line.startswith("✓") else "❌ ") + line[1:].strip())
 
 with tab_decisions:
     counts = decisions.decision.value_counts()

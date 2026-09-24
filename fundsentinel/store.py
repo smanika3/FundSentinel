@@ -43,6 +43,7 @@ SCHEMA_SQL = [
         run_id text, fund_id text, reviewer text, field text, old_value text, rule text, source_ref text,
         PRIMARY KEY (run_id, fund_id, reviewer, field))""",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS baseline_run_id text",
+    "ALTER TABLE runs ADD COLUMN IF NOT EXISTS redteam jsonb",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS dataset_description text",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS transform jsonb",
     "ALTER TABLE funds ADD COLUMN IF NOT EXISTS status text",

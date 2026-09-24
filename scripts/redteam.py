@@ -89,6 +89,10 @@ def score(run_dir: str):
     out = {"caught": caught, "planted": len(key), "false_positives": fp, "real_funds": len(real),
            "detail": [l for l in lines]}
     (Path(run_dir) / "redteam_score.json").write_text(json.dumps(out, indent=2))
+    from fundsentinel import store
+    store.init_db()
+    store.sql("UPDATE runs SET redteam = :r WHERE run_id = :id", {"r": {**out, "key": key}, "id": summary["run_id"]})
+    print("Scorecard saved to the database (runs.redteam).")
 
 
 if __name__ == "__main__":
