@@ -18,6 +18,7 @@
     "category_return_5y":     {"type": "rate",   "required": false, "min": -1.0, "max": 2.0, "description": "Category average 5-year annualised return, fraction."},
     "total_net_assets":       {"type": "number", "required": false, "min": 0, "description": "Fund size in the fund's currency."},
     "inception_date":         {"type": "date",   "required": false, "description": "Date the fund launched (ISO 8601)."},
+    "fund_age_years":         {"type": "number", "required": false, "min": 0, "max": 150, "description": "Age of the fund in years, when the source gives age instead of an inception date."},
     "as_of_date":             {"type": "date",   "required": true,  "description": "Date the fund's figures are valid for (ISO 8601)."},
     "source_ref":             {"type": "string", "required": true,  "description": "Where the record came from: source file + row number."}
   }

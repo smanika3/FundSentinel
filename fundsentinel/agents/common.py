@@ -3,7 +3,7 @@
 from strands import Agent
 from strands.models import BedrockModel
 
-from .. import settings
+from .. import normalise, settings
 from ..mapping import Record
 from ..verdict import Verdict
 
@@ -27,6 +27,12 @@ def fact(rec: Record, name: str) -> dict:
             "source_ref": rec.get("source_ref"), "transform": fv.transform}
 
 
+def history_years(rec: Record) -> float | None:
+    """Track record length: from inception and as-of dates, else from a stated fund age."""
+    years = normalise.years_between(rec.get("inception_date"), rec.get("as_of_date"))
+    return years if years is not None else rec.get("fund_age_years")
+
+
 def unknown(fund_id: str) -> dict:
     return {"error": f"unknown fund_id {fund_id}"}
 
@@ -40,3 +46,26 @@ def build_reviewer(name: str, role: str, tools: list, model: str = "sonnet") -> 
 def review(agent: Agent, fund_id: str) -> Verdict:
     agent.messages.clear()  # each fund is judged on its own, with no memory of earlier funds
     return agent(f"Review fund_id={fund_id}.").structured_output
+
+
+AUTH_ERRORS = ("ExpiredToken", "LoginRefreshRequired", "UnrecognizedClient", "InvalidSignature", "session has expired")
+
+
+class LoginExpired(RuntimeError):
+    pass
+
+
+def is_auth_error(e: Exception) -> bool:
+    return any(k in f"{type(e).__name__} {e}" for k in AUTH_ERRORS)
+
+
+def safe_review(agent: Agent, fund_id: str) -> Verdict:
+    """Never let one reviewer crash the pipeline: errors become cannot_assess. Expired logins stop the run."""
+    try:
+        return review(agent, fund_id)
+    except Exception as e:
+        if is_auth_error(e):
+            raise LoginExpired("AWS login expired. Run: aws login --profile fundsentinel, then re-run "
+                               "(same file + mapping reuses the run ID, so nothing is duplicated).") from e
+        return Verdict(reviewer=agent.name, fund_id=fund_id, verdict="cannot_assess", evidence=[], confidence=0,
+                       reason=f"The {agent.name} reviewer could not run ({type(e).__name__}); needs a re-run.")

@@ -2,9 +2,9 @@
 
 from strands import Agent, tool
 
-from .. import normalise, settings
+from .. import settings
 from ..mapping import Record
-from .common import build_reviewer, fact, unknown
+from .common import build_reviewer, fact, history_years, unknown
 
 ROLE = ("You are the Analyst on a mock fund-approval committee. Your only job is performance: returns, "
         "returns versus the category, length of track record, and whether the returns look believable.")
@@ -19,7 +19,7 @@ def build(records: dict[str, Record]) -> Agent:
         rec = records.get(fund_id)
         if rec is None:
             return unknown(fund_id)
-        names = ["return_1y", "return_3y", "return_5y", "category_return_5y", "inception_date", "as_of_date"]
+        names = ["return_1y", "return_3y", "return_5y", "category_return_5y", "inception_date", "fund_age_years", "as_of_date"]
         return {"fund_id": fund_id, "fund_name": rec.get("fund_name"), "category": rec.get("category"),
                 **{n: fact(rec, n) for n in names}}
 
@@ -30,7 +30,7 @@ def build(records: dict[str, Record]) -> Agent:
         if rec is None:
             return unknown(fund_id)
         out = []
-        years = normalise.years_between(rec.get("inception_date"), rec.get("as_of_date"))
+        years = history_years(rec)
         if years is None:
             out.append({"rule": "analyst.history_known", "outcome": "cannot_assess"})
         else:

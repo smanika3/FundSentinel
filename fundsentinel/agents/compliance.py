@@ -2,9 +2,9 @@
 
 from strands import Agent, tool
 
-from .. import normalise, settings
+from .. import settings
 from ..mapping import Record
-from .common import build_reviewer, fact, unknown
+from .common import build_reviewer, fact, history_years, unknown
 
 ROLE = ("You are the Compliance reviewer on a mock fund-approval committee. Your only job is hard policy rules: "
         "prohibited fund types, minimum fund size, minimum track record, and required data being present. "
@@ -21,7 +21,7 @@ def build(records: dict[str, Record]) -> Agent:
         rec = records.get(fund_id)
         if rec is None:
             return unknown(fund_id)
-        names = ["fund_name", "category", "total_net_assets", "inception_date", "as_of_date"]
+        names = ["fund_name", "category", "total_net_assets", "inception_date", "fund_age_years", "as_of_date"]
         return {"fund_id": fund_id, **{n: fact(rec, n) for n in names},
                 "missing_required_fields": [f for f in rules["required_fields"] if rec.get(f) is None]}
 
@@ -39,7 +39,7 @@ def build(records: dict[str, Record]) -> Agent:
         tna = rec.get("total_net_assets")
         out.append({"rule": f"compliance.min_total_net_assets={rules['min_total_net_assets']}", "value": tna,
                     "outcome": "cannot_assess" if tna is None else ("fail" if tna < rules["min_total_net_assets"] else "pass")})
-        years = normalise.years_between(rec.get("inception_date"), rec.get("as_of_date"))
+        years = history_years(rec)
         out.append({"rule": f"compliance.min_track_record_years={rules['min_track_record_years']}",
                     "field": "history_years", "value": None if years is None else round(years, 2), "source_ref": "computed",
                     "outcome": "cannot_assess" if years is None else ("fail" if years < rules["min_track_record_years"] else "pass")})

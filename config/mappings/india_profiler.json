@@ -1,0 +1,78 @@
+{
+  "source": "india/comprehensive_mutual_funds_data.csv",
+  "author": "profiler-agent",
+  "fields": {
+    "fund_id": {
+      "column": "scheme_name",
+      "confidence": 0.6,
+      "rationale": "No ticker/code column exists; scheme_name uniquely identifies each fund (789 distinct of 814 rows)."
+    },
+    "fund_name": {
+      "column": "scheme_name",
+      "confidence": 0.95,
+      "rationale": "scheme_name is the full display name of the fund."
+    },
+    "fund_family": {
+      "column": "amc_name",
+      "confidence": 0.95,
+      "rationale": "amc_name gives the asset management company operating the fund."
+    },
+    "category": {
+      "column": "sub_category",
+      "confidence": 0.7,
+      "rationale": "sub_category (38 distinct values like 'Sectoral / Thematic', 'Childrens Funds') matches a peer-group category granularity; the broader 'category' column is too coarse (only 5 values)."
+    },
+    "currency": {
+      "constant": "INR",
+      "confidence": 0.95,
+      "rationale": "File is Indian mutual fund data (AMC names, crore units), so currency is INR for all rows."
+    },
+    "expense_ratio": {
+      "column": "expense_ratio",
+      "unit": "percent",
+      "confidence": 0.75,
+      "rationale": "Values (median 0.615, max 2.59) are typical Indian expense ratios expressed as percent, needing /100 to reach the 0-0.05 fraction range."
+    },
+    "risk_score": {
+      "column": "risk_level",
+      "scale": [
+        1.0,
+        6.0
+      ],
+      "confidence": 0.8,
+      "rationale": "risk_level ranges 1-6 and represents fund risk classification, rescaled to the 1-5 canonical scale."
+    },
+    "return_1y": {
+      "column": "returns_1yr",
+      "unit": "percent",
+      "confidence": 0.8,
+      "rationale": "returns_1yr (median 4.4, range -19.7..130.8) is a percent trailing 1-year return, convert to fraction."
+    },
+    "return_3y": {
+      "column": "returns_3yr",
+      "unit": "percent",
+      "confidence": 0.75,
+      "rationale": "returns_3yr (median 18.5) is annualised 3yr return in percent, convert to fraction."
+    },
+    "return_5y": {
+      "column": "returns_5yr",
+      "unit": "percent",
+      "confidence": 0.7,
+      "rationale": "returns_5yr (median 8.9, 80% filled) is annualised 5yr return in percent, convert to fraction."
+    },
+    "total_net_assets": {
+      "column": "fund_size_cr",
+      "multiplier": 10000000.0,
+      "confidence": 0.85,
+      "rationale": "fund_size_cr is fund size in Indian crore units, multiplier 1e7 converts to base currency units."
+    }
+  },
+  "not_mapped": [
+    "benchmark: no index/benchmark column present",
+    "category_expense_ratio: no category-average expense ratio column provided",
+    "category_return_5y: no category-average 5yr return column provided",
+    "inception_date: only fund_age_yr (age in years) available, cannot derive an exact ISO launch date without inventing it",
+    "as_of_date: no column indicates the as-of/reporting date for the figures, cannot invent one",
+    "ticker: no exchange ticker symbol column exists for these mutual funds"
+  ]
+}
