@@ -8,6 +8,10 @@ const UPDATE_STEPS = ['Reading the new file', 'Finding what changed', 'Deciding 
 const OUTCOME = { approved: 'approved', approved_with_conditions: 'conditions', rejected: 'rejected', flagged_for_review: 'person', sent_back: 'person', quarantined: 'quarantined' };
 const fmt = (s) => Math.floor(s / 60) + ':' + String(Math.max(0, s) % 60).padStart(2, '0');
 const JOB_KEY = 'fs-live-job';
+const MAX_FUNDS = 100;      // the server enforces the same cap; bigger runs go through the command line
+const CONFIRM_ABOVE = 20;   // ask before starting a run this big
+// Rough time: each fund takes ~1.5 minutes and `workers` run at once, plus ~2 minutes of data checks.
+const estimateMin = (n, workers) => Math.max(2, Math.round(Math.ceil(n / workers) * 1.5 + 2));
 
 function readJob() { try { return JSON.parse(localStorage.getItem(JOB_KEY) || 'null'); } catch { return null; } }
 function writeJob(j) { try { if (j) localStorage.setItem(JOB_KEY, JSON.stringify(j)); else localStorage.removeItem(JOB_KEY); } catch {} }
@@ -31,7 +35,7 @@ function RunForm({ runs, onStart, starting }) {
 
   React.useEffect(() => {
     fetch('/api/files').then((r) => r.json()).then((d) => {
-      if (d.files) { setFiles(d.files.map((f) => f.key)); setFile((cur) => cur || (d.files.find((f) => /yahoo_us\/MutualFunds/.test(f.key)) || d.files[0] || {}).key || ''); }
+      if (d.files) { setFiles(d.files.map((f) => f.key)); setFile((cur) => cur || (d.files.find((f) => /test\/funds_v1\.csv$/.test(f.key)) || d.files[0] || {}).key || ''); }
       else setErr(d.error === 'login' ? 'login' : d.error);
     }).catch((e) => setErr(String(e)));
     if (reviewRuns[0]) setBaseline(reviewRuns[0].id);
@@ -47,12 +51,20 @@ function RunForm({ runs, onStart, starting }) {
     if (r.key) { setFiles((fs) => Array.from(new Set([...fs, r.key])).sort()); setFile(r.key); } else setErr(r.error);
   };
 
+  const [confirming, setConfirming] = React.useState(false);
+  const tickerList = tickers.split(/[\s,]+/).filter(Boolean);
+  const count = scope === 'first' ? Math.min(MAX_FUNDS, Math.max(1, Number(first) || 3)) : scope === 'tickers' ? Math.min(MAX_FUNDS, tickerList.length) : MAX_FUNDS;
+  const upTo = scope === 'all' ? 'up to ' : '';
+  const minutes = estimateMin(count, Number(par));
+  React.useEffect(() => setConfirming(false), [file, type, scope, first, tickers, par]);
   const start = () => {
+    if (count > CONFIRM_ABOVE && !confirming) { setConfirming(true); return; }
     const body = { source: file, type, workers: Number(par), supervisor: routing, context: note || undefined };
     if (type === 'update') body.baseline = baseline;
     if (type !== 'update' && mapping !== 'auto') body.mapping = mapping;
-    if (scope === 'first') body.limit = Number(first) || 3;
-    if (scope === 'tickers') body.fund_ids = tickers.split(/[\s,]+/).filter(Boolean);
+    if (scope === 'tickers') body.fund_ids = tickerList.slice(0, MAX_FUNDS);
+    else body.limit = count;
+    setConfirming(false);
     onStart(body);
   };
 
@@ -83,10 +95,10 @@ function RunForm({ runs, onStart, starting }) {
             { value: 'test_versions', label: 'Saved layout: test files' },
           ]} />
         </Field>
-        <Field label="Funds" hint="A typical fund takes 1–3 minutes; 3 run at a time.">
+        <Field label="Funds" hint={`At most ${MAX_FUNDS} from the app; larger runs use the command line. A typical fund takes 1–3 minutes.`}>
           <div style={{ display: 'flex', gap: 8 }}>
-            <Select value={scope} onChange={setScope} options={[{ value: 'first', label: 'First N funds' }, { value: 'tickers', label: 'Specific tickers' }, { value: 'all', label: 'All funds' }]} style={{ flex: 1 }} />
-            {scope === 'first' ? <TextInput value={first} onChange={(e) => setFirst(e.target.value)} style={{ width: 80 }} /> : null}
+            <Select value={scope} onChange={setScope} options={[{ value: 'first', label: 'First N funds' }, { value: 'tickers', label: 'Specific tickers' }, { value: 'all', label: `All funds (up to ${MAX_FUNDS})` }]} style={{ flex: 1 }} />
+            {scope === 'first' ? <TextInput value={first} inputMode="numeric" onChange={(e) => setFirst(e.target.value.replace(/\D/g, '').slice(0, 3))} style={{ width: 80 }} /> : null}
           </div>
           {scope === 'tickers' ? <TextInput mono placeholder="DODGX, KDHAX, VFIAX" value={tickers} onChange={(e) => setTickers(e.target.value)} /> : null}
         </Field>
@@ -97,15 +109,31 @@ function RunForm({ runs, onStart, starting }) {
           <Field label="Funds reviewed at the same time" style={{ maxWidth: 240 }}><Select value={par} onChange={setPar} options={['1', '2', '3', '4', '5']} /></Field>
         </div>
       </Disclosure>
+      {confirming ? (
+        <Callout kind="warning" title={`This is a big run: ${upTo}${count} funds, about ${minutes} minutes`}>
+          It keeps going in the cloud until it finishes, and results are saved only at the end. You can stop it from the progress page. Press start again to confirm.
+        </Callout>
+      ) : null}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, paddingTop: 4, borderTop: '1px solid var(--border)', marginTop: -4 }}>
-        <Button variant="primary" size="lg" icon="play" loading={starting} disabled={starting || !file || err === 'login'} onClick={start} style={{ marginTop: 18 }}>{type === 'update' ? 'Start update' : 'Start review'}</Button>
-        <span style={{ marginTop: 18, font: 'var(--type-small)', color: 'var(--text-2)' }}>Runs in the cloud on AWS AgentCore. You can leave this page.</span>
+        <Button variant="primary" size="lg" icon="play" loading={starting} disabled={starting || !file || err === 'login'} onClick={start} style={{ marginTop: 18 }}>{confirming ? `Yes, start ${upTo}${count} funds` : type === 'update' ? 'Start update' : 'Start review'}</Button>
+        <span style={{ marginTop: 18, font: 'var(--type-small)', color: 'var(--text-2)' }}>{type === 'update' ? 'Only affected reviews are redone' : `${upTo}${count} fund${count === 1 ? '' : 's'} · about ${minutes} min`} · runs in the cloud on AWS AgentCore; you can leave this page.</span>
       </div>
     </div>
   );
 }
 
-function Progress({ job, p, onDone, onClear }) {
+function Progress({ job, p, onDone, onClear, onStopped }) {
+  const [stopAsk, setStopAsk] = React.useState(false);
+  const [stopping, setStopping] = React.useState(false);
+  const [stopErr, setStopErr] = React.useState(null);
+  const stop = async () => {
+    if (!stopAsk) { setStopAsk(true); return; }
+    setStopping(true); setStopErr(null);
+    const r = await fetch('/api/runs/stop', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ run: job.runId }) })
+      .then((x) => x.json()).catch((x) => ({ error: String(x) }));
+    setStopping(false); setStopAsk(false);
+    if (r.error) setStopErr(r.error); else onStopped();
+  };
   const type = job.type || (p && p.run_type) || 'review';
   const file = job.file || (p && p.file) || '';
   const steps = type === 'update' ? UPDATE_STEPS : STEPS;
@@ -124,7 +152,7 @@ function Progress({ job, p, onDone, onClear }) {
   const perFund = lines.length ? lines.reduce((a, l) => a + (l.seconds || 0), 0) / lines.length : 90;
   const left = status === 'done' ? 0 : Math.max(60, Math.round(((total - done) * perFund) / (job.workers || 3)) + (total ? 40 : 240));
   const stepData = steps.map((label, i) => {
-    let state = status === 'done' ? 'done' : i < step ? 'done' : i === step ? (status === 'failed' ? 'error' : 'running') : 'pending';
+    let state = status === 'done' ? 'done' : i < step ? 'done' : i === step ? (status === 'failed' || status === 'stopped' ? 'error' : 'running') : 'pending';
     const m = marks[i + 1];
     let detail;
     if (i === 4 && step >= 4) detail = done + ' of ' + total + ' funds · ' + (job.workers || 3) + ' at a time';
@@ -138,7 +166,12 @@ function Progress({ job, p, onDone, onClear }) {
         <span>·</span><span>Elapsed {fmt(p ? p.elapsed : 0)}</span><span>·</span><span>{job.workers || 3} funds at a time</span>
         {status === 'running' ? <><span>·</span><span>About {Math.max(1, Math.round(left / 60))} min left</span></> : null}
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 6, alignItems: 'center', color: 'var(--text-3)' }}><Icon name="refresh-cw" size={13} />Updates every few seconds</span>
+        {status === 'running' ? (
+          <Button size="sm" variant={stopAsk ? 'primary' : 'secondary'} icon="x" loading={stopping} onClick={stop}>{stopAsk ? 'Yes, stop this run' : 'Stop run'}</Button>
+        ) : null}
       </div>
+      {stopAsk && status === 'running' ? <div style={{ font: 'var(--type-small)', color: 'var(--text-2)', marginTop: -8 }}>Stopping ends the run in the cloud. Results are saved only when a run finishes, so nothing from this run will be kept. <a href="#" onClick={(e) => { e.preventDefault(); setStopAsk(false); }}>Keep running</a></div> : null}
+      {stopErr ? <Callout kind="error" title="Couldn't stop the run">{stopErr}</Callout> : null}
       {status === 'done' ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 18px', background: 'var(--status-good-bg)', borderRadius: 'var(--radius-lg)' }}>
           <span style={{ color: 'var(--status-good-fg)' }}><Icon name="circle-check" strokeWidth={2} /></span>
@@ -153,7 +186,12 @@ function Progress({ job, p, onDone, onClear }) {
       ) : null}
       {status === 'failed' ? (
         <Callout kind="error" title="The run failed" action={<Button icon="refresh-cw" onClick={onClear}>Start another run</Button>}>
-          {p.error || 'The cloud pipeline stopped.'} Funds already decided are kept.
+          {p.error || 'The cloud pipeline stopped.'} Results are saved only when a run finishes, so nothing from this run was kept.
+        </Callout>
+      ) : null}
+      {status === 'stopped' ? (
+        <Callout kind="info" title="Run stopped" action={<Button icon="refresh-cw" onClick={onClear}>Start another run</Button>}>
+          {p.error || 'Stopped from the app.'} Results are saved only when a run finishes, so nothing from this run was kept.
         </Callout>
       ) : null}
       <div style={{ padding: '6px 20px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)' }}>
@@ -221,7 +259,8 @@ export default function RunScreen({ runs }) {
         </Callout>
       ) : error ? <Callout kind="error" title="The run could not start" style={{ marginTop: 24, maxWidth: 820 }}>{error}</Callout> : null}
       {job ? (
-        <Progress job={job} p={p} onDone={() => { const id = job.runId; clear(); router.push('/runs/' + encodeURIComponent(id)); router.refresh(); }} onClear={clear} />
+        <Progress job={job} p={p} onDone={() => { const id = job.runId; clear(); router.push('/runs/' + encodeURIComponent(id)); router.refresh(); }} onClear={clear}
+          onStopped={() => setP((cur) => ({ ...(cur || {}), status: 'stopped' }))} />
       ) : <RunForm runs={runs} onStart={start} starting={starting} />}
     </div>
   );

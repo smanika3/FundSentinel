@@ -219,11 +219,16 @@ export type RunSummary = {
   when: string; mapping: string; baseline: string | null;
 };
 
+/** A run where only the data team ran (no committee): its "funds" are just the ones set aside, so show the file's size. */
+const checksOnly = (r: any) => !!r.no_verdicts && !r.baseline_run_id && !r.is_redteam && r.records !== null && r.records !== undefined;
+
 export async function listRuns(): Promise<RunSummary[]> {
   const rows = await sql(`SELECT run_id, source, mapping, funds, seconds, updated_at, baseline_run_id,
-                                 (redteam IS NOT NULL) AS is_redteam FROM runs ORDER BY updated_at DESC`);
+                                 (redteam IS NOT NULL) AS is_redteam, quality->'stats'->>'records' AS records,
+                                 NOT EXISTS (SELECT 1 FROM verdicts v WHERE v.run_id = runs.run_id) AS no_verdicts
+                          FROM runs ORDER BY updated_at DESC`);
   return rows.map((r) => ({
-    id: r.run_id, file: r.source, funds: r.funds ?? 0, seconds: Math.round(r.seconds ?? 0),
+    id: r.run_id, file: r.source, funds: checksOnly(r) ? Number(r.records) : r.funds ?? 0, seconds: Math.round(r.seconds ?? 0),
     duration: `${Math.round(r.seconds ?? 0)} s`,
     type: r.baseline_run_id ? "update" : r.is_redteam ? "redteam" : "review",
     when: when(r.updated_at), mapping: mappingText(r.mapping), baseline: r.baseline_run_id ?? null,
@@ -236,7 +241,8 @@ type FundRow = {
 };
 
 export async function getRun(runId: string) {
-  const [meta] = await sql(`SELECT run_id, source, mapping, funds, seconds, updated_at, baseline_run_id, redteam
+  const [meta] = await sql(`SELECT run_id, source, mapping, funds, seconds, updated_at, baseline_run_id, redteam,
+                                   quality->'stats'->>'records' AS records, quality->'stats'->>'issues' AS issues
                             FROM runs WHERE run_id = :r`, { r: runId });
   if (!meta) return null;
   const [decisions, verdicts, events] = await Promise.all([
@@ -287,6 +293,8 @@ export async function getRun(runId: string) {
     duration: `${Math.round(meta.seconds ?? 0)} s`, when: when(meta.updated_at),
     type: isRadar ? "update" : meta.redteam ? "redteam" : "review", mapping: mappingText(meta.mapping),
     funds_: funds, sendbacks: { supervisor: supSends, evidence: evSends }, asOf: asOfSummary(decisions.map((d) => d.as_of)),
+    checksOnly: verdicts.length === 0 && !isRadar && !meta.redteam && meta.records != null
+      ? { records: Number(meta.records), issues: Number(meta.issues ?? 0), setAside: funds.length, seconds: Math.round(meta.seconds ?? 0) } : null,
     update: isRadar ? await updateView(runId, meta.baseline_run_id, funds) : null,
     redteam: meta.redteam ? redteamView(json(meta.redteam, {} as any)) : null,
   };
@@ -544,13 +552,19 @@ export async function getFund(runId: string, fundId: string) {
 
 // ---------------------------------------------------------------- data page
 
+const MAX_PROBLEMS = 300;
 const DID: Record<string, string> = { fix: "fixed", flag: "flagged", quarantine: "setaside", drop: "dup", dismiss: "ok" };
 
 export async function getData(runId: string) {
-  const [[meta], issues, columns] = await Promise.all([
+  // A whole-file run can hold tens of thousands of problems (31,429 for the full Yahoo file); show the most important first.
+  const [[meta], issues, [issueCount], columns] = await Promise.all([
     sql(`SELECT source, mapping, quality, transform, dataset_description FROM runs WHERE run_id = :r`, { r: runId }),
     sql(`SELECT issue_id, fund_id, row_num, field, kind, detail, raw, action, new_value, confidence, decided_by, reason
-         FROM quality_issues WHERE run_id = :r ORDER BY issue_id`, { r: runId }),
+         FROM quality_issues WHERE run_id = :r
+         ORDER BY CASE WHEN decided_by = 'guardrail' THEN 0 WHEN action = 'quarantine' THEN 1 WHEN action = 'fix' THEN 2
+                       WHEN decided_by IN ('quality', 'selfheal') THEN 3 WHEN action = 'drop' THEN 4 ELSE 5 END, issue_id
+         LIMIT ${MAX_PROBLEMS}`, { r: runId }),
+    sql(`SELECT count(*) AS n FROM quality_issues WHERE run_id = :r`, { r: runId }),
     sql(`SELECT name, kind, source_column, how, coverage, description, unit, caveats FROM column_metadata WHERE run_id = :r`, { r: runId }),
   ]);
   if (!meta) return null;
@@ -570,6 +584,10 @@ export async function getData(runId: string) {
                        warnings: quality.stats?.flagged ?? 0, setAside: quality.stats?.quarantined ?? 0 } : null,
     summary: quality?.report?.summary ? plain(quality.report.summary) : null,
     top: (quality?.report?.top_problems ?? []).map((t: string) => plain(t)),
+    problemsListed: Number(issueCount?.n ?? issues.length),
+    checksOnly: !!quality && !(await sql(`SELECT 1 FROM verdicts WHERE run_id = :r LIMIT 1`, { r: runId })).length
+      && !(await sql(`SELECT 1 FROM runs WHERE run_id = :r AND baseline_run_id IS NOT NULL`, { r: runId })).length,
+    records: quality?.stats?.records ?? null,
     problems: issues.map((i, n) => {
       const blocked = i.decided_by === "guardrail" && /Guardrail:/.test(i.reason ?? "");
       const who = i.decided_by === "guardrail" ? "safety" : i.decided_by === "rule" ? "rule" : "ai";

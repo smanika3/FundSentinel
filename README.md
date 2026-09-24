@@ -29,9 +29,65 @@ Two extras:
 
 A rule we kept throughout: **code does the maths and the hard rules, AI does the judgement, and code checks whatever the AI produces.** Nothing ever stops the line. If the system isn't sure, it sends the fund to a person instead of guessing.
 
+## Using it
+
+The reviewer app is a web app hosted on AWS Amplify (password protected; ask the team for access). It has five pages:
+- **Run a file:** pick a fund file or upload your own CSV, choose a review or an update of an earlier run, and watch each step and each fund's decision arrive live. A run can be stopped at any time. Runs from the app are capped at 100 funds; bigger runs use the command line.
+- **Results:** every fund's decision with a one-line reason and the four reviewers' verdicts. Update runs show what changed and which reviews were reopened; RedTeam runs show the scorecard.
+- **Fund:** why one fund got its decision. Every number is clickable and opens the exact row of the source file it came from. It also shows the full review trail (who was asked what, every send-back) and the date of the data the decision was based on.
+- **Data:** what was wrong with the file and what was done about it, and a plain-English description of every column.
+- **Policy:** every rule the committee checks, its limit, and what happens when it's broken.
+
+## The agentic design
+
+Fourteen agents, each with one job. Each one makes its own decisions, and code checks what it produces before anything else relies on it.
+
+| Agent | What it decides by itself | How code keeps it honest |
+| --- | --- | --- |
+| **Profiler** (column reader) | Which column is which field, and in what units | Every guess is tested against the data; rejected guesses go back to the agent with the reason (up to 3 rounds) |
+| **Quality inspector** | A plain-English report and contradictions no rule can see (a bond fund filed under a stock category) | Its findings are flags, never automatic changes |
+| **SelfHeal** (data repairer) | Fix, flag for a person, set aside, or "not actually a problem" | A fix needs 90% confidence and a value code suggested; any fix that would turn a policy fail into a pass is blocked |
+| **Transform** (data organiser) | New columns worth adding | Only simple formulas on known fields; code computes them and requires at least 50% coverage |
+| **Metadata** (data describer) | A description and caveats for every column | Coverage and facts are computed by code; the agent only writes the words |
+| **Supervisor** | Which reviewers to call, in what order, which to skip, and when to send one back | Compliance must always run; others can only be skipped after a Compliance fail; at most 2 send-backs per fund |
+| **Analyst, Compliance, Finance, Suitability** | A verdict (pass, concern, fail, can't assess) with a reason | Every number they cite must come from their own tools, which apply the policy rules in code |
+| **Evidence checker** (code + AI) | Whether each reasoning actually follows from its evidence | Unsupported verdicts are sent back; still unproven means the fund goes to a person |
+| **Decision owner** | The final outcome and its reason | Fixed rules first: a verified Compliance fail is always a rejection |
+| **Radar-lite** (change checker) | Which changes in an updated file matter, and which reviewers to reopen | A change that crosses a policy limit always counts, whatever the agent thinks |
+| **RedTeam** | Realistic trick funds to try to fool the system | What counts as "caught" is fixed in advance, and must be for the right reason |
+
+The agents correct themselves in three loops: the Profiler retries rejected mappings, the Supervisor sends reviewers back when their facts clash, and the Evidence checker sends back any verdict without proof. When a loop can't resolve something, the fund is labelled "needs a person" instead of stopping the pipeline.
+
+The system adapts to new data without reconfiguration in two ways. A file with unfamiliar column names, units or language goes through the same pipeline because the Profiler maps it onto one standard schema (tested on renamed columns, an Indian file and a Brazilian regulator file). An updated version of a file is compared with the earlier run, and only the affected reviews are redone.
+
+## How an enterprise would adopt this
+
+This is a prototype on public and synthetic data with a made-up policy, but the shape is meant to carry over to any organisation that approves funds today by email and spreadsheet.
+
+**Where it plugs in.**
+- *In:* the fund data an organisation already receives (a vendor feed, an internal fund list, a spreadsheet from a fund manager). No reformatting is needed; the Profiler maps each new layout once, and a mapping can be saved and reused.
+- *Out:* each decision, its reason, every verdict with its evidence and the full review trail are stored in an ordinary SQL database and as JSON files. An existing approval workflow, audit system or reporting tool can read them directly.
+- *Metadata:* the data dictionary, column-level provenance (where every value came from and what changed it) and the quality report are machine-readable, so they can feed a data catalogue and serve as the start of wider data intelligence.
+
+**How to roll it out safely.**
+1. **Shadow mode:** run it alongside the existing process and compare its decisions with the people's decisions. Disagreements are the evaluation set.
+2. **Assisted:** people still sign off, but start from FundSentinel's evidence packet instead of from emails.
+3. **Automated for the clear cases:** clear passes and clear rule breaches go straight through; anything uncertain is already routed to a person.
+
+**Governance.**
+- The policy is a configuration file, not code, so compliance teams can own it: changes go through normal change control, and every verdict records the exact limit it was checked against.
+- Every decision says whether a fixed rule or an AI made it, which data date it was based on, and why. The review trail shows every routing step and send-back.
+- The RedTeam and the answer-key tests become a regression suite, run whenever a model, prompt or rule changes.
+
+**Security and operations.**
+- Everything runs inside one AWS account: models through Amazon Bedrock, the pipeline on Bedrock AgentCore under a narrowly scoped role, data in S3 and Aurora. No keys are stored in code or in the browser.
+- Re-running a file never creates duplicates, and runs can be stopped.
+
+**What production would still need.** The organisation's real policy and data feeds, single sign-on instead of a shared password, saving each fund as soon as it's decided (today results are saved when a run finishes), monitoring and cost limits per run, and a human-reviewed evaluation set before automating any decisions.
+
 ## What we measured
 
-We built test files with answer keys, so these numbers are scored rather than eyeballed:
+We built test files with answer keys, so these numbers are scored rather than eyeballed (re-checked on fresh runs on 24 September):
 
 | Test | Result |
 | --- | --- |
@@ -39,6 +95,7 @@ We built test files with answer keys, so these numbers are scored rather than ey
 | Finding 13 planted data problems (typos, a 45% fee, missing values, duplicates…) | 13 of 13 caught and handled |
 | An updated file with 5 meaningful changes plus routine noise | 5 of 5 handled; routine-only funds reopened nothing; 6 of 32 possible reviews redone |
 | 13 trick funds hidden among 8 genuine ones | 11 of 13 caught, 0 genuine funds rejected |
+| Data checks on the whole Yahoo file (23,783 funds, 77 MB) | Done in under 5 minutes: 31,428 problems found, 210 funds set aside for a missing fee, and 142 AI-suggested repairs blocked by the safety rule because they would have made a fund look better (each sent to a person instead) |
 
 The two tricks we missed:
 - **A leveraged fund named "Ultra 2x"**: it was noticed and sent to a person, but not rejected outright.
@@ -63,8 +120,9 @@ All of it runs on AWS in us-east-1:
 - **Aurora PostgreSQL** (via the RDS Data API) as the record book
 - **CloudFormation** for the infrastructure
 - **CodeCommit** for the code
+- **AWS Amplify** for the web app (Next.js), rebuilt on every push to the repository
 
-The dashboard is built with Streamlit today. A cleaner web app on AWS Amplify is designed and next in line.
+A Streamlit dashboard reads the same database and is kept as a fallback.
 
 ## Running it
 
@@ -87,13 +145,16 @@ uv run python -m fundsentinel.pipeline \
 # Compare an updated file with an earlier run (Radar-lite)
 uv run python -m fundsentinel.radar --baseline <earlier_run_id> --source data/test/funds_v2.csv
 
-# Look at the results
+# Look at the results: the web app, locally with your AWS login
+cd web && npm install && npm run dev:aws
+
+# or the Streamlit fallback
 uv run streamlit run app/dashboard.py
 ```
 
 Running the same file twice updates the results in place instead of duplicating them.
 
-**In the cloud:** `./scripts/deploy_runtime.sh` packages the pipeline and deploys it to AgentCore. `uv run python scripts/invoke_runtime.py '{"source": "raw/india/comprehensive_mutual_funds_data.csv", "limit": 3}'` runs it there. We deploy with our own CloudFormation template (`infra/runtime.yaml`) rather than `agentcore deploy`, because the latter needs an admin-level setup step that the hackathon account doesn't allow.
+**In the cloud:** `./scripts/deploy_runtime.sh` packages the pipeline and deploys it to AgentCore; `./scripts/deploy_web.sh` creates the Amplify app (after that, every push deploys it). `uv run python scripts/invoke_runtime.py '{"source": "raw/india/comprehensive_mutual_funds_data.csv", "limit": 3}'` runs it there. We deploy with our own CloudFormation template (`infra/runtime.yaml`) rather than `agentcore deploy`, because the latter needs an admin-level setup step that the hackathon account doesn't allow.
 
 **Scoring the tests:** `scripts/score_quality.py`, `scripts/score_radar.py` and `scripts/redteam.py score` compare a run with its answer key. `scripts/make_test_files.py` rebuilds the test files.
 
@@ -105,7 +166,8 @@ Running the same file twice updates the results in place instead of duplicating 
 | The standard fields every file is mapped onto | [config/schema.json](config/schema.json) |
 | The agents | [fundsentinel/agents/](fundsentinel/agents/) |
 | The pipeline, checks and storage | [fundsentinel/](fundsentinel/) |
-| The dashboard | [app/dashboard.py](app/dashboard.py) |
+| The web app | [web/](web/) |
+| The Streamlit fallback | [app/dashboard.py](app/dashboard.py) |
 | Cloud setup | [infra/](infra/), [runtime/](runtime/) |
 | Test files and answer keys | [data/test/](data/test/) |
 | Where the data came from | [data/SOURCES.md](data/SOURCES.md) |

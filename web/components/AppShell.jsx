@@ -68,7 +68,7 @@ export default function AppShell({ runs, error, children }) {
 
   return (
     <div style={{ display: 'flex', height: '100vh', background: 'var(--bg-page)', color: 'var(--text)' }}>
-      <Sidebar active={route.page} onNavigate={nav} runs={runs.length ? runs : [{ id: '-', file: 'No runs yet', funds: 0, duration: '', type: 'review' }]}
+      <Sidebar active={route.page} onNavigate={nav} runs={runs.length ? runs.map((r) => ({ ...r, funds: Number(r.funds).toLocaleString('en-US') })) : [{ id: '-', file: 'No runs yet', funds: 0, duration: '', type: 'review' }]}
         runId={runId || '-'} onRunChange={onRunChange} collapsed={collapsed} login={error === 'login' ? 'expired' : 'active'}
         progress={progress && route.page !== 'run' ? progress : null} onProgressClick={() => router.push('/run')} />
       <main style={{ flex: 1, minWidth: 0, overflow: 'auto', position: 'relative' }}>

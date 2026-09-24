@@ -96,7 +96,7 @@ Resources:
                 Resource: !Sub arn:aws:s3:::${Bucket}/raw/uploads/*
               - Sid: StartRuns
                 Effect: Allow
-                Action: bedrock-agentcore:InvokeAgentRuntime
+                Action: [bedrock-agentcore:InvokeAgentRuntime, bedrock-agentcore:StopRuntimeSession]
                 Resource: [!Ref RuntimeArn, !Sub "${RuntimeArn}/*"]
       Tags: [{ Key: project, Value: fundsentinel }]
 

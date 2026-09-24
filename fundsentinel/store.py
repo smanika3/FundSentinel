@@ -53,6 +53,7 @@ SCHEMA_SQL = [
     "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS supervisor jsonb",
     "ALTER TABLE verdicts ADD COLUMN IF NOT EXISTS evidence_ok boolean",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS quality jsonb",
+    "ALTER TABLE run_progress ADD COLUMN IF NOT EXISTS session_id text",  # set by the web app so it can stop a run
 ]
 
 

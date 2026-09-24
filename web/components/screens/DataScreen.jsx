@@ -32,9 +32,9 @@ export default function DataScreen({ run, go, data }) {
       <div style={{ marginTop: 24 }}>
         <TileRow>
           <NumberTile label="Quality score" sub="The quality inspector's rating; 100 = no problems" value={data.tiles.score === null ? '—' : <>{data.tiles.score}<span style={{ fontSize: 20, fontWeight: 400, color: 'var(--text-2)' }}>/100</span></>} />
-          <NumberTile label="Problems found" value={data.tiles.problems} />
-          <NumberTile label="Funds with warnings" tone="person" value={data.tiles.warnings} />
-          <NumberTile label="Funds set aside" tone="neutral" value={data.tiles.setAside} />
+          <NumberTile label="Problems found" value={Number(data.tiles.problems).toLocaleString('en-US')} />
+          <NumberTile label="Funds with warnings" tone="person" value={Number(data.tiles.warnings).toLocaleString('en-US')} />
+          <NumberTile label="Funds set aside" tone="neutral" value={Number(data.tiles.setAside).toLocaleString('en-US')} />
         </TileRow>
       </div>
       <section style={{ marginTop: 28, padding: '20px 24px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', display: 'grid', gridTemplateColumns: 'minmax(0,1.3fr) minmax(0,1fr)', gap: 28 }}>
@@ -51,7 +51,9 @@ export default function DataScreen({ run, go, data }) {
       </section>
 
       <section style={{ marginTop: 44 }}>
-        <SectionTitle aside={'Problems in the funds reviewed · ' + data.tiles.problems + ' found in the whole file'}>Problems and what we did</SectionTitle>
+        <SectionTitle aside={PROBLEMS.length < data.problemsListed
+          ? `Showing the ${PROBLEMS.length} most important of ${data.problemsListed.toLocaleString('en-US')} · set aside, fixed and AI findings first`
+          : (data.checksOnly ? 'Every problem in the file' : 'Problems in the funds reviewed · ' + data.tiles.problems.toLocaleString('en-US') + ' found in the whole file')}>Problems and what we did</SectionTitle>
         <DataTable rowKey="id" rows={PROBLEMS} selectedKey={open} onRowClick={(r) => setOpen(r.id)}
           columns={[
             { key: 'fund', label: 'Fund', width: 80, render: (r) => <Mono>{r.fund}</Mono> },

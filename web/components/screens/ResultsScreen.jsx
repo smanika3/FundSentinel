@@ -213,6 +213,13 @@ export default function ResultsScreen({ run, go }) {
     <div>
       <PageHeader title="Results" subtitle="What did the committee decide?"
         meta={<>{run.funds} funds · {run.seconds} seconds · file: <Mono chip strong={false}>{run.file}</Mono> · {run.mapping}{run.asOf ? ' · ' + run.asOf : ''} · <a href="/policy" style={{ color: 'inherit' }}>rules used</a></>} />
+      {run.checksOnly ? (
+        <Callout kind="info" title="Data checks only: the committee didn't run on this file" style={{ marginTop: 24, maxWidth: 900 }}
+          action={<RButton iconRight="arrow-right" onClick={() => go('/runs/' + encodeURIComponent(run.id) + '/data')}>See the data checks</RButton>}>
+          The data team checked all {run.checksOnly.records.toLocaleString('en-US')} funds in the file in {run.checksOnly.seconds} seconds and found {run.checksOnly.issues.toLocaleString('en-US')} problems.
+          The {run.checksOnly.setAside} funds below were set aside because they can't be judged fairly (their fee is missing); every other fund is ready for the committee.
+        </Callout>
+      ) : null}
       {run.type === 'update' ? <UpdateSection run={run} go={go} openSheet={setSheet} /> : null}
       {run.type === 'redteam' ? <RedTeamSection run={run} go={go} openSheet={setSheet} /> : null}
       <Block>
