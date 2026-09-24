@@ -13,7 +13,7 @@ if [ ! -s "$PWFILE" ]; then
 fi
 
 aws cloudformation deploy --stack-name fundsentinel-web --template-file infra/web.yaml \
-  --parameter-overrides "BasicAuthPassword=$(cat "$PWFILE")" --capabilities CAPABILITY_NAMED_IAM \
+  --parameter-overrides "BasicAuthPassword=$(cat "$PWFILE")" --capabilities CAPABILITY_NAMED_IAM --no-fail-on-empty-changeset \
   --tags project=fundsentinel --profile "$PROFILE" --region us-east-1
 
 APP_ID=$(aws cloudformation describe-stacks --stack-name fundsentinel-web --profile "$PROFILE" --region us-east-1 \
