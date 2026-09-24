@@ -189,7 +189,9 @@ The **Quality agent** then writes a plain-English report with a 0–100 score an
 ### 7.4 SelfHeal (Sonnet): "fix what we safely can, flag the rest"
 For each ambiguous problem (likely typo, out-of-range or implausible value), the agent picks one of: **fix** (only if ≥90% sure, and the new value must be one of the candidates code computed), **flag** (plausible but unsure; may set a best guess, marked "needs review"), **quarantine** (can't be judged fairly), or **dismiss** (not actually a problem, e.g. "Sectoral / Thematic" is a real category name, not a typo).
 
-**Code re-checks every fix** (`quality.validate_fix`): the value must be a code-computed candidate and inside the allowed range. Otherwise the fix is overruled and becomes a flag ("decided by: guardrail"). Flags travel with the fund into the committee, so reviewers see them. Quarantined funds skip the committee and are saved to S3 `quarantine/` with the reason.
+**Code re-checks every fix** (`quality.validate_fix`): the value must be a code-computed candidate and inside the allowed range. Otherwise the fix is overruled and becomes a flag ("decided by: guardrail").
+
+**Guardrail: SelfHeal may never repair toward approval.** If the original value fails (or raises a concern under) a policy check and the proposed value would pass it, the change is blocked: the original value is kept, the fund is flagged, and the suggestion is only recorded as a note. This covers fee vs the cap, fund size vs the $50M minimum, risk vs the general-investor limit, implausible returns, and category typo fixes that would remove a prohibited word. It was added because RedTeam's hidden 4.5% fee was "fixed" by SelfHeal to 0.45% (92% sure) and then passed Finance. Side effect: a fee typed as "7.5" now stays 7.5% (and fails) instead of being guessed to 0.75%. Stricter than the plan's example, but a data repair should never be the reason a fund gets approved. Flags travel with the fund into the committee, so reviewers see them. Quarantined funds skip the committee and are saved to S3 `quarantine/` with the reason.
 
 Score on the broken file (`scripts/score_quality.py`): **13 of 13 planted problems caught and handled as expected.**
 
@@ -256,7 +258,13 @@ The RedTeam agent (Sonnet) is given the mock policy and a catalogue of 13 trick 
 - The real funds and trick bases are now funds that pass **every** rule on their own (fee under the cap and below the category average, over $1B, 5+ years old, risk ≤ 4). So a trick fund can only be rejected because of its trick, and rejecting a real fund is a genuine false alarm.
 - A trick only counts as caught if the outcome is right **and** a matching reason is present (e.g. `compliance=fail` for the tiny fund, an `ai_inconsistency` flag for the category mismatch, the words "stale" or "as_of_date" for stale data). Otherwise it's scored "MISSED: rejected for another reason".
 
-Status: the fair run is in progress at the time of writing; the result goes in the dashboard's RedTeam tab.
+**Fair result (before the guardrail): caught 10 of 13 tricks, 0 of 8 genuine funds wrongly rejected.**
+- Caught: tiny fund and too-new fund (Compliance rule), missing fee (quarantined), fake returns, risk-1 label on an aggressive fund, wrong ticker and category mismatch (flagged for a person), clone fund and fee-just-under-cap (approved with conditions, problem noticed), and "60 bps" read correctly (the harmless trick).
+- Missed: **hidden 4.5% fee** (SelfHeal "fixed" it to 0.45%; now blocked by the guardrail above); **leveraged fund disguised as "ProShares Ultra 2x"** (spotted and flagged, but not rejected: the keyword rule doesn't include "2x"/"Ultra"); **2-year-old data** (no staleness rule, the expected gap).
+- Genuine funds: none rejected; 2 of 8 flagged for a person without good reason (one for a very low but real 0.02% fee, one because our own evidence check failed to verify a correct verdict), 1 given conditions because its ticker isn't in today's SEC list.
+- We deliberately did **not** add "2x/Ultra" keywords or a staleness rule after seeing the test, because that would be teaching to the test. They remain honest misses.
+
+A re-run with the guardrail in place is in progress; its score replaces this one in the dashboard's RedTeam tab.
 
 ---
 
