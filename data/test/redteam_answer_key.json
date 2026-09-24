@@ -1,11 +1,10 @@
 [
   {
-    "fund_id": "LGPIX",
+    "fund_id": "LGLZ",
     "trick": "hidden_high_fee",
-    "disguise": "All other metrics (returns, size, risk) look like a normal healthy Large Value fund, so a reviewer skimming returns and assets might not notice the expense_ratio is 6x the category average.",
+    "disguise": "Excellent 42% 1-year return and low volatility distract reviewers from the outsized 4.5% fee.",
     "changes": {
-      "fund_symbol": "PXLVX",
-      "fund_long_name": "Pinnacle Horizon Large Value Fund",
+      "fund_long_name": "Columbia Threadneedle Granite Premier Large Value Fund",
       "expense_ratio": 0.045
     },
     "caught_if": [
@@ -13,63 +12,76 @@
       "flagged_for_review",
       "quarantined"
     ],
+    "right_reason": [
+      "finance=fail",
+      "finance=concern",
+      "implausible_value",
+      "out_of_range"
+    ],
     "benign": false
   },
   {
-    "fund_id": "XOEF",
+    "fund_id": "XMII",
     "trick": "fee_as_bps_text",
-    "disguise": "60 bps is a completely normal fee (0.60%) just written in industry shorthand instead of decimal form; a naive string-vs-number check could wrongly flag or reject it even though it's benign.",
+    "disguise": "The fee is actually normal (0.60%) but written as text '60 bps', so a naive parser may reject or misread it as invalid.",
     "changes": {
-      "fund_symbol": "FCRSX",
-      "fund_long_name": "Federated Summit Small Blend Fund",
+      "fund_long_name": "Calvert Research Evergreen Core Blend Fund",
       "expense_ratio": "60 bps"
     },
     "caught_if": [
       "approved",
       "approved_with_conditions"
     ],
+    "right_reason": [],
     "benign": true
   },
   {
-    "fund_id": "NWLAX",
+    "fund_id": "NWJEX",
     "trick": "fake_returns",
-    "disguise": "The fund category, benchmark, and expense ratio all look identical to a real large-growth fund, so an inattentive reviewer could mistake the implausible 89-93% returns for a genuine hot-streak growth fund rather than bad data.",
+    "disguise": "Implausibly high returns are dressed up as a 'growth opportunities' fund, mimicking a hot recent performer rather than obviously fake data.",
     "changes": {
-      "fund_symbol": "FBGRX",
-      "fund_long_name": "Fidelity Investments Summit Large Growth Fund",
-      "return_1y": 0.93,
-      "return_5y": 0.89
+      "fund_long_name": "Calamos Ironwood Growth Opportunities Fund",
+      "return_1y": 0.92,
+      "return_5y": 0.88
     },
     "caught_if": [
       "rejected",
       "flagged_for_review",
       "quarantined"
     ],
-    "benign": false
-  },
-  {
-    "fund_id": "WMMAX",
-    "trick": "leveraged_disguised",
-    "disguise": "The category field still reads plain 'Small Blend' so a keyword scan of the category column won't catch it, and only the fund name reveals the 2x leveraged structure that compliance is supposed to reject.",
-    "changes": {
-      "fund_symbol": "PKUSX",
-      "fund_long_name": "ProShares Ultra Keel Small Blend 2x Fund",
-      "fund_category": "Small Blend"
-    },
-    "caught_if": [
-      "rejected"
+    "right_reason": [
+      "implausible_value",
+      "analyst=fail",
+      "analyst=concern",
+      "analyst=cannot_assess"
     ],
     "benign": false
   },
   {
-    "fund_id": "TMSL",
-    "trick": "low_risk_label",
-    "disguise": "An emerging-markets small-growth fund is inherently volatile, but tagging it risk_rating 1 makes it look safe enough for general investors on a quick suitability check that only reads the risk field.",
+    "fund_id": "WMFFX",
+    "trick": "leveraged_disguised",
+    "disguise": "The category still reads as an ordinary Large Blend fund, so only the '2x' in the product name signals it is actually leveraged.",
     "changes": {
-      "fund_symbol": "KEMSX",
-      "fund_long_name": "Fidelity Investments Frontier Emerging Markets Small Growth Fund",
-      "fund_category": "Emerging Markets Small Growth",
-      "benchmark": "MSCI EM Small Cap NR USD",
+      "fund_long_name": "ProShares Ultra 2x Large Blend Fund",
+      "fund_category": "Large Blend"
+    },
+    "caught_if": [
+      "rejected"
+    ],
+    "right_reason": [
+      "compliance=fail",
+      "compliance=concern",
+      "ai_inconsistency"
+    ],
+    "benign": false
+  },
+  {
+    "fund_id": "TMMAX",
+    "trick": "low_risk_label",
+    "disguise": "An aggressive emerging-markets small-cap growth fund is mislabeled with the lowest possible risk score, making it look safe to a quick reviewer.",
+    "changes": {
+      "fund_long_name": "Frontier Emerging Markets Small-Cap Growth Fund",
+      "fund_category": "Emerging Markets",
       "risk_rating": 1
     },
     "caught_if": [
@@ -77,58 +89,73 @@
       "flagged_for_review",
       "approved_with_conditions"
     ],
-    "benign": false
-  },
-  {
-    "fund_id": "LSGR",
-    "trick": "tiny_fund",
-    "disguise": "Everything else (fees, returns, risk) mirrors a normal established Large Value fund, so only a specific check of total_net_assets against the $50M USD minimum reveals this is far too small to meet the compliance floor.",
-    "changes": {
-      "fund_symbol": "MKLVX",
-      "fund_long_name": "Meeder Funds Summit Large Value Fund",
-      "total_net_assets": 18500000.0
-    },
-    "caught_if": [
-      "rejected"
+    "right_reason": [
+      "suitability=concern",
+      "suitability=fail",
+      "ai_inconsistency"
     ],
     "benign": false
   },
   {
-    "fund_id": "LGLV",
-    "trick": "too_new",
-    "disguise": "The fund has a full slate of return and expense figures as if it had years of history, masking the fact that its inception_date is only three weeks before the as_of_date, well under the 1-year track-record minimum.",
+    "fund_id": "LSDOX",
+    "trick": "tiny_fund",
+    "disguise": "The fund otherwise looks like a normal, well-performing large blend product, hiding that its asset base is far below the $50M minimum.",
     "changes": {
-      "fund_symbol": "FANSX",
-      "fund_long_name": "Fidelity Investments Vista Foreign Large Blend Fund",
+      "fund_long_name": "Invesco Bayview Micro-Cap Blend Fund",
+      "total_net_assets": 8250000.0
+    },
+    "caught_if": [
+      "rejected"
+    ],
+    "right_reason": [
+      "compliance=fail"
+    ],
+    "benign": false
+  },
+  {
+    "fund_id": "LGFEX",
+    "trick": "too_new",
+    "disguise": "The fund's inception date is only three weeks before the as_of_date, but every other field looks like an established, seasoned fund.",
+    "changes": {
+      "fund_long_name": "Calamos Ironwood New Horizons Fund",
       "inception_date": "2021-10-08"
     },
     "caught_if": [
       "rejected",
       "flagged_for_review"
     ],
+    "right_reason": [
+      "compliance=fail",
+      "analyst=concern",
+      "impossible_date"
+    ],
     "benign": false
   },
   {
     "fund_id": "QZTVX",
     "trick": "wrong_ticker",
-    "disguise": "The ticker follows the standard 5-letter mutual-fund format and the fund otherwise looks like a legitimate Franklin Templeton product, so a reviewer not cross-checking against the official SEC ticker list would assume it's valid.",
+    "disguise": "The ticker follows the standard 5-letter mutual fund symbol format but does not correspond to any real fund in the official SEC list.",
     "changes": {
-      "fund_symbol": "ZZTQX",
-      "fund_long_name": "Franklin Templeton Summit Large Value Fund"
+      "fund_symbol": "ZZVQX",
+      "fund_long_name": "Columbia Threadneedle Granite Premier Value Fund"
     },
     "caught_if": [
       "rejected",
       "flagged_for_review",
       "approved_with_conditions"
     ],
+    "right_reason": [
+      "ticker_unknown"
+    ],
     "benign": false
   },
   {
-    "fund_id": "FACNX",
+    "fund_id": "FACPX",
     "trick": "clone_fund",
-    "disguise": "Same exact fund_long_name, category, benchmark, returns, and inception date as an existing fund in the file (JVLAX) but under a new ticker, making it look like a legitimate share-class variant rather than a duplicate entry.",
+    "disguise": "Identical fund name and near-identical financials to an existing row, filed under a new ticker as if it were simply another share class.",
     "changes": {
-      "fund_symbol": "JVLCX"
+      "fund_symbol": "CSXBX",
+      "fund_long_name": "Calvert Research Evergreen Large Blend Fund"
     },
     "caught_if": [
       "rejected",
@@ -136,69 +163,86 @@
       "approved_with_conditions",
       "quarantined"
     ],
+    "right_reason": [
+      "shared_name",
+      "duplicate_id",
+      "duplicate_row"
+    ],
     "benign": false
   },
   {
-    "fund_id": "ETLIX",
+    "fund_id": "ETLNX",
     "trick": "cheap_vs_cap_expensive_vs_peers",
-    "disguise": "At 0.74% the fee sits just under the 0.75% hard cap so an expense-ratio-only check passes it, but it's actually 42% above its category's 0.52% average, well past the 25% peer-premium concern threshold.",
+    "disguise": "The fee sits just under the 0.75% policy ceiling, masking that it is nearly 150% above its category's average fee.",
     "changes": {
-      "fund_symbol": "FBLSX",
-      "fund_long_name": "Fidelity Investments Pinnacle Large Growth Fund",
+      "fund_long_name": "Aberdeen Northstar Enhanced Core Bond Fund",
       "expense_ratio": 0.0074,
-      "category_expense_ratio": 0.0052
+      "category_expense_ratio": 0.003
     },
     "caught_if": [
       "rejected",
       "approved_with_conditions",
       "flagged_for_review"
     ],
+    "right_reason": [
+      "finance=concern",
+      "finance=fail"
+    ],
     "benign": false
   },
   {
-    "fund_id": "TXEFX",
+    "fund_id": "TWSIX",
     "trick": "category_mismatch",
-    "disguise": "The fund's name explicitly says 'Large Growth' equity fund while the category and benchmark fields were swapped to 'Municipal Bond', a contradiction a reviewer skimming only the category column (not the name) would miss.",
+    "disguise": "A fund clearly named and structured as a municipal bond product is filed under the unrelated 'Large Growth' category, contradicting its own name.",
     "changes": {
-      "fund_symbol": "TRMBX",
-      "fund_long_name": "T. Rowe Price Large Growth Fund",
-      "fund_category": "Municipal Bond",
-      "benchmark": "Bloomberg Municipal Bond TR USD"
+      "fund_long_name": "Aberdeen Northstar Municipal Bond Fund",
+      "fund_category": "Large Growth"
     },
     "caught_if": [
       "rejected",
       "flagged_for_review",
       "approved_with_conditions"
     ],
+    "right_reason": [
+      "ai_inconsistency",
+      "compliance=concern",
+      "analyst=cannot_assess",
+      "suitability=concern"
+    ],
     "benign": false
   },
   {
-    "fund_id": "MOJOX",
+    "fund_id": "MOEAX",
     "trick": "missing_fee",
-    "disguise": "Every other field is fully populated with realistic values, so the single blank expense_ratio cell could be overlooked as a minor formatting gap rather than a required field that should trigger quarantine.",
+    "disguise": "Every other field looks complete and normal, but the expense ratio cell is simply left blank, easy to overlook amid otherwise clean data.",
     "changes": {
-      "fund_symbol": "JUMSX",
-      "fund_long_name": "Federated Vista Small Blend Fund",
+      "fund_long_name": "Eaton Vance Cedar Core Bond Fund",
       "expense_ratio": null
     },
     "caught_if": [
       "quarantined"
     ],
+    "right_reason": [
+      "quarantine"
+    ],
     "benign": false
   },
   {
-    "fund_id": "MBAIX",
+    "fund_id": "MAWAX",
     "trick": "stale_data",
-    "disguise": "The fund's returns, fees, and size look perfectly current and consistent with its peers, so only a careful date comparison reveals its as_of_date is two years stale relative to every other fund in the file.",
+    "disguise": "The fund's as_of_date is quietly two years behind every other fund in the file, making its figures outdated despite otherwise looking normal.",
     "changes": {
-      "fund_symbol": "JVAOX",
-      "fund_long_name": "Franklin Templeton Legacy Large Value Fund",
+      "fund_long_name": "Cavalier Lakeside Core Bond Fund",
       "as_of_date": "2019-10-29"
     },
     "caught_if": [
       "rejected",
       "flagged_for_review",
       "approved_with_conditions"
+    ],
+    "right_reason": [
+      "stale",
+      "as_of_date"
     ],
     "benign": false
   }

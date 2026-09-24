@@ -130,7 +130,7 @@ All raw data lives in S3 under `raw/` and locally in `data/raw/` (not in git, it
 | **Morningstar Europe** (Kaggle) | Needs a Kaggle login; not downloaded. | — |
 
 ### Known problem in the Yahoo data (found by our agents)
-Many rows carry a **fund name that belongs to a different fund**: the same share-class name appears under several tickers (e.g. "DWS RREEF Real Assets Fund - Class A" on 4 tickers), and VFIAX (really Vanguard's S&P 500 fund) is labelled "BNY Mellon Technology Growth Fund Class A". Nobody planted this. The Decision owner and Quality agent found it on their own. It's a great demo moment, but it also means Yahoo fund names can't be trusted, and funds sharing a name get a cautious "approved with conditions" or a flag.
+Many rows carry a **fund name that belongs to a different fund**: only **267 of 23,783** fund names in the file are unique, and the same share-class name appears under several tickers (e.g. "DWS RREEF Real Assets Fund - Class A" on 4 tickers), and VFIAX (really Vanguard's S&P 500 fund) is labelled "BNY Mellon Technology Growth Fund Class A". Nobody planted this. The Decision owner and Quality agent found it on their own. It's a great demo moment, but it also means Yahoo fund names can't be trusted, and funds sharing a name get a cautious "approved with conditions" or a flag.
 
 ### Test files we built (in `data/test/`, committed, each with an answer key so agents are **scored, not eyeballed**)
 Built by `scripts/make_test_files.py` from real Yahoo rows with a fixed random seed, so everyone gets identical files.
@@ -252,7 +252,11 @@ Score (`scripts/score_radar.py`, v1 → v2): **5 of 5** planted changes handled 
 ### 7.14 RedTeam: "try to fool the system, score it honestly"
 The RedTeam agent (Sonnet) is given the mock policy and a catalogue of 13 trick types, and designs a realistic disguise for each by editing a copy of a real fund (e.g. a 0.74% fee just under the 0.75% cap but far above its peers; a leveraged fund whose category looks ordinary; a clean-looking fund whose data is 2 years stale). Code gives each a real but unused SEC ticker (so a fake ticker doesn't give it away, except in the "wrong ticker" trick), shuffles them among 8 real funds, and keeps a hidden answer key. What counts as "caught" is fixed in `config/redteam.json`. One trick is **benign** ("60 bps" must be read correctly, not punished) and one has **no rule in our system** (stale data), so misses are possible and shown. The scorecard also counts real funds wrongly rejected.
 
-Status: tricks generated; **the scored run is in progress** at the time of writing. Result goes in the dashboard's RedTeam tab.
+**Lesson from the first attempt (kept here on purpose):** the first RedTeam run scored "13 of 13", but that was inflated. The real funds used as starting points charged more than the 0.75% cap, so every trick inherited a failing fee and was rejected for the wrong reason (the stale-data fund was rejected for its fee, not its stale date). We fixed the test instead of claiming the score:
+- The real funds and trick bases are now funds that pass **every** rule on their own (fee under the cap and below the category average, over $1B, 5+ years old, risk ≤ 4). So a trick fund can only be rejected because of its trick, and rejecting a real fund is a genuine false alarm.
+- A trick only counts as caught if the outcome is right **and** a matching reason is present (e.g. `compliance=fail` for the tiny fund, an `ai_inconsistency` flag for the category mismatch, the words "stale" or "as_of_date" for stale data). Otherwise it's scored "MISSED: rejected for another reason".
+
+Status: the fair run is in progress at the time of writing; the result goes in the dashboard's RedTeam tab.
 
 ---
 

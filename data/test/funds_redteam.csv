@@ -1,22 +1,22 @@
 fund_symbol,fund_long_name,fund_category,benchmark,expense_ratio,category_expense_ratio,risk_rating,return_1y,return_5y,category_return_5y,total_net_assets,inception_date,as_of_date
-KLCAX,Fidelity Investments Beacon Large Growth Fund,Large Growth,Russell 1000 Growth TR USD,0.0109,0.0099,4,0.2797,0.1562,0.2041,4634104320.0,2007-12-05,2021-10-29
-JVLAX,Franklin Templeton Compass Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0106,0.0094,4,0.4302,0.0945,0.1236,12557949952.0,2008-12-22,2021-10-29
-NWLAX,Fidelity Investments Summit Large Growth Fund,Large Growth,Russell 1000 Growth TR USD,0.0109,0.0099,4,0.93,0.89,0.2041,4634104320.0,2007-12-05,2021-10-29
-KCSSX,Meeder Funds Keel Small Blend Fund,Small Blend,Russell 2000 TR USD,0.0115,0.0103,3,0.4923,0.0912,0.1379,121611904.0,2015-07-14,2021-10-29
-QZTVX,Franklin Templeton Summit Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0089,0.0094,4,0.4533,0.0948,0.1236,11083456512.0,2005-02-28,2021-10-29
-TXEFX,T. Rowe Price Large Growth Fund,Municipal Bond,Bloomberg Municipal Bond TR USD,0.0081,0.0094,4,0.4339,0.0972,0.1236,12557949952.0,1997-01-02,2021-10-29
-MBAIX,Franklin Templeton Legacy Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0089,0.0094,4,0.4533,0.0948,0.1236,11083456512.0,2005-02-28,2019-10-29
-XOEF,Federated Summit Small Blend Fund,Small Blend,Russell 2000 TR USD,60 bps,0.0103,3,0.5214,0.1054,0.1379,1142056832.0,2011-11-01,2021-10-29
-LGLV,Fidelity Investments Vista Foreign Large Blend Fund,Foreign Large Blend,MSCI ACWI Ex USA NR USD,0.012,0.0095,4,0.3216,0.0908,0.0979,130075696.0,2021-10-08,2021-10-29
-KCISX,Fidelity Investments Anchor Foreign Large Blend Fund,Foreign Large Blend,MSCI ACWI Ex USA NR USD,0.012,0.0095,4,0.3216,0.0908,0.0979,130075696.0,2015-07-14,2021-10-29
-WMMAX,ProShares Ultra Keel Small Blend 2x Fund,Small Blend,Russell 2000 TR USD,0.0115,0.0103,3,0.4923,0.0912,0.1379,121611904.0,2015-07-14,2021-10-29
-JVLIX,Franklin Templeton Horizon Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0081,0.0094,4,0.4339,0.0972,0.1236,12557949952.0,1997-01-02,2021-10-29
-MOJOX,Federated Vista Small Blend Fund,Small Blend,Russell 2000 TR USD,,0.0103,3,0.5214,0.1054,0.1379,1142056832.0,2011-11-01,2021-10-29
-LGPIX,Pinnacle Horizon Large Value Fund,Large Value,Russell 1000 Value TR USD,0.045,0.0094,4,0.4339,0.0972,0.1236,12557949952.0,1997-01-02,2021-10-29
-JVASX,Franklin Templeton Meridian Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0089,0.0094,4,0.4533,0.0948,0.1236,11083456512.0,2005-02-28,2021-10-29
-JUSMX,Federated Crest Small Blend Fund,Small Blend,Russell 2000 TR USD,0.0071,0.0103,3,0.5214,0.1054,0.1379,1142056832.0,2011-11-01,2021-10-29
-KCVSX,Meeder Funds Keystone Large Value Fund,Large Value,Russell 1000 Value TR USD,0.01,0.0094,4,0.4063,0.1046,0.1236,114814904.0,2015-07-14,2021-10-29
-TMSL,Fidelity Investments Frontier Emerging Markets Small Growth Fund,Emerging Markets Small Growth,MSCI EM Small Cap NR USD,0.012,0.0095,1,0.3216,0.0908,0.0979,130075696.0,2015-07-14,2021-10-29
-LSGR,Meeder Funds Summit Large Value Fund,Large Value,Russell 1000 Value TR USD,0.01,0.0094,4,0.4063,0.1046,0.1236,18500000.0,2015-07-14,2021-10-29
-ETLIX,Fidelity Investments Pinnacle Large Growth Fund,Large Growth,Russell 1000 Growth TR USD,0.0074,0.0052,4,0.2797,0.1562,0.2041,4634104320.0,2007-12-05,2021-10-29
-FACNX,Franklin Templeton Compass Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0106,0.0094,4,0.4302,0.0945,0.1236,12557949952.0,2008-12-22,2021-10-29
+SSSYX,Invesco Bayview Large Blend Fund,Large Blend,S&P 500 TR USD,0.0002,0.0083,3,0.3722,0.1516,0.1572,2891012864.0,2014-09-17,2021-10-29
+GEQYX,Calamos Ironwood Large Blend Fund,Large Blend,S&P 500 TR USD,0.0013,0.0083,3,0.3743,0.1532,0.1572,2877520896.0,2001-08-27,2021-10-29
+NWJEX,Calamos Ironwood Growth Opportunities Fund,Large Blend,S&P 500 TR USD,0.0013,0.0083,3,0.92,0.88,0.1572,2877520896.0,2001-08-27,2021-10-29
+TBIIX,Cavalier Lakeside Intermediate Core Bond Fund,Intermediate Core Bond,Bloomberg US Agg Bond TR USD,0.0011,0.0062,3,-0.0082,0.0349,0.0311,20651190272.0,2009-09-14,2021-10-29
+QZTVX,Columbia Threadneedle Granite Premier Value Fund,Large Value,Russell 1000 Value TR USD,0.0055,0.0094,4,0.4233,0.1176,0.1236,1760891520.0,2012-11-08,2021-10-29
+TWSIX,Aberdeen Northstar Municipal Bond Fund,Large Growth,Bloomberg US Agg Bond TR USD,0.005,0.0062,4,0.006,0.0436,0.0311,9775470592.0,2002-08-27,2021-10-29
+MAWAX,Cavalier Lakeside Core Bond Fund,Intermediate Core Bond,Bloomberg US Agg Bond TR USD,0.0011,0.0062,3,-0.0082,0.0349,0.0311,20651190272.0,2009-09-14,2019-10-29
+XMII,Calvert Research Evergreen Core Blend Fund,Large Blend,S&P 500 TR USD,60 bps,0.0083,3,0.3848,0.1549,0.1572,4571346944.0,2000-06-30,2021-10-29
+LGFEX,Calamos Ironwood New Horizons Fund,Large Blend,S&P 500 TR USD,0.0013,0.0083,3,0.3743,0.1532,0.1572,2877520896.0,2021-10-08,2021-10-29
+VTBNX,Eaton Vance Cedar Intermediate Core Bond Fund,Intermediate Core Bond,Bloomberg US Agg Bond TR USD,0.0002,0.0062,3,-0.0068,0.0358,0.0311,251653111808.0,2009-02-17,2021-10-29
+WMFFX,ProShares Ultra 2x Large Blend Fund,Large Blend,S&P 500 TR USD,0.0049,0.0083,3,0.3848,0.1549,0.1572,4571346944.0,2000-06-30,2021-10-29
+CSERX,Columbia Threadneedle Granite Large Value Fund,Large Value,Russell 1000 Value TR USD,0.0055,0.0094,4,0.4233,0.1176,0.1236,1760891520.0,2012-11-08,2021-10-29
+MOEAX,Eaton Vance Cedar Core Bond Fund,Intermediate Core Bond,Bloomberg US Agg Bond TR USD,,0.0062,3,-0.0068,0.0358,0.0311,251653111808.0,2009-02-17,2021-10-29
+LGLZ,Columbia Threadneedle Granite Premier Large Value Fund,Large Value,Russell 1000 Value TR USD,0.045,0.0094,4,0.4233,0.1176,0.1236,1760891520.0,2012-11-08,2021-10-29
+FGBPX,Aberdeen Northstar Intermediate Core Bond Fund,Intermediate Core Bond,Bloomberg US Agg Bond TR USD,0.005,0.0062,4,0.006,0.0436,0.0311,9775470592.0,2002-08-27,2021-10-29
+MXVIX,Columbia Threadneedle Silverline Large Blend Fund,Large Blend,S&P 500 TR USD,0.0052,0.0083,3,0.3707,0.1474,0.1572,3138873088.0,2003-09-08,2021-10-29
+CSXAX,Calvert Research Evergreen Large Blend Fund,Large Blend,S&P 500 TR USD,0.0049,0.0083,3,0.3848,0.1549,0.1572,4571346944.0,2000-06-30,2021-10-29
+TMMAX,Frontier Emerging Markets Small-Cap Growth Fund,Emerging Markets,S&P 500 TR USD,0.0002,0.0083,1,0.3722,0.1516,0.1572,2891012864.0,2014-09-17,2021-10-29
+LSDOX,Invesco Bayview Micro-Cap Blend Fund,Large Blend,S&P 500 TR USD,0.0002,0.0083,3,0.3722,0.1516,0.1572,8250000.0,2014-09-17,2021-10-29
+ETLNX,Aberdeen Northstar Enhanced Core Bond Fund,Intermediate Core Bond,Bloomberg US Agg Bond TR USD,0.0074,0.003,4,0.006,0.0436,0.0311,9775470592.0,2002-08-27,2021-10-29
+FACPX,Calvert Research Evergreen Large Blend Fund,Large Blend,S&P 500 TR USD,0.0049,0.0083,3,0.3848,0.1549,0.1572,4571346944.0,2000-06-30,2021-10-29

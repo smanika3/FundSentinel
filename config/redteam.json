@@ -1,18 +1,159 @@
 {
-  "note": "RedTeam trick catalogue. The RedTeam agent designs realistic disguises; what counts as 'caught' is fixed here in code so the scorecard cannot be gamed. outcome sets are final pipeline outcomes (decision labels) that count as caught.",
+  "note": "RedTeam trick catalogue. The RedTeam agent designs realistic disguises; what counts as 'caught' is fixed here in code so the scorecard cannot be gamed. outcome sets are final pipeline outcomes (decision labels) that count as caught. A trick only counts as caught if the outcome is in caught_if AND at least one right_reason signal (a flag kind, a reviewer verdict, or a word in a reason) is present, so a fund rejected for some unrelated problem does not count.",
   "tricks": {
-    "hidden_high_fee":      {"description": "A fee far above policy (4-5%) on an otherwise attractive fund.", "caught_if": ["rejected", "flagged_for_review", "quarantined"]},
-    "fee_as_bps_text":      {"description": "A normal fee written as basis-point text, e.g. '60 bps'. BENIGN: the system must read it correctly, not punish it.", "caught_if": ["approved", "approved_with_conditions"], "benign": true},
-    "fake_returns":         {"description": "Made-up returns that are too good to be true (e.g. 80-95% a year for 5 years).", "caught_if": ["rejected", "flagged_for_review", "quarantined"]},
-    "leveraged_disguised":  {"description": "A leveraged or inverse product whose category looks ordinary; the giveaway is only in the name.", "caught_if": ["rejected"]},
-    "low_risk_label":       {"description": "A clearly aggressive fund (small-cap growth, emerging markets, sector) labelled risk 1.", "caught_if": ["rejected", "flagged_for_review", "approved_with_conditions"]},
-    "tiny_fund":            {"description": "A fund far below the minimum size, presented normally.", "caught_if": ["rejected"]},
-    "too_new":              {"description": "A fund launched only weeks before the as-of date.", "caught_if": ["rejected", "flagged_for_review"]},
-    "wrong_ticker":         {"description": "A ticker that does not exist in the official SEC list.", "caught_if": ["rejected", "flagged_for_review", "approved_with_conditions"]},
-    "clone_fund":           {"description": "A copy of an existing fund in the file under a new ticker (same name).", "caught_if": ["rejected", "flagged_for_review", "approved_with_conditions", "quarantined"]},
-    "cheap_vs_cap_expensive_vs_peers": {"description": "Fee just under the cap but far above its category average.", "caught_if": ["rejected", "approved_with_conditions", "flagged_for_review"]},
-    "category_mismatch":    {"description": "A name that clearly contradicts the category (e.g. a municipal bond fund filed as Large Growth).", "caught_if": ["rejected", "flagged_for_review", "approved_with_conditions"]},
-    "missing_fee":          {"description": "The fee cell left empty.", "caught_if": ["quarantined"]},
-    "stale_data":           {"description": "Figures dated two years earlier than every other fund in the file. (FundSentinel has no explicit rule for this.)", "caught_if": ["rejected", "flagged_for_review", "approved_with_conditions"]}
+    "hidden_high_fee": {
+      "description": "A fee far above policy (4-5%) on an otherwise attractive fund.",
+      "caught_if": [
+        "rejected",
+        "flagged_for_review",
+        "quarantined"
+      ],
+      "right_reason": [
+        "finance=fail",
+        "finance=concern",
+        "implausible_value",
+        "out_of_range"
+      ]
+    },
+    "fee_as_bps_text": {
+      "description": "A normal fee written as basis-point text, e.g. '60 bps'. BENIGN: the system must read it correctly, not punish it.",
+      "caught_if": [
+        "approved",
+        "approved_with_conditions"
+      ],
+      "benign": true,
+      "right_reason": []
+    },
+    "fake_returns": {
+      "description": "Made-up returns that are too good to be true (e.g. 80-95% a year for 5 years).",
+      "caught_if": [
+        "rejected",
+        "flagged_for_review",
+        "quarantined"
+      ],
+      "right_reason": [
+        "implausible_value",
+        "analyst=fail",
+        "analyst=concern",
+        "analyst=cannot_assess"
+      ]
+    },
+    "leveraged_disguised": {
+      "description": "A leveraged or inverse product whose category looks ordinary; the giveaway is only in the name.",
+      "caught_if": [
+        "rejected"
+      ],
+      "right_reason": [
+        "compliance=fail",
+        "compliance=concern",
+        "ai_inconsistency"
+      ]
+    },
+    "low_risk_label": {
+      "description": "A clearly aggressive fund (small-cap growth, emerging markets, sector) labelled risk 1.",
+      "caught_if": [
+        "rejected",
+        "flagged_for_review",
+        "approved_with_conditions"
+      ],
+      "right_reason": [
+        "suitability=concern",
+        "suitability=fail",
+        "ai_inconsistency"
+      ]
+    },
+    "tiny_fund": {
+      "description": "A fund far below the minimum size, presented normally.",
+      "caught_if": [
+        "rejected"
+      ],
+      "right_reason": [
+        "compliance=fail"
+      ]
+    },
+    "too_new": {
+      "description": "A fund launched only weeks before the as-of date.",
+      "caught_if": [
+        "rejected",
+        "flagged_for_review"
+      ],
+      "right_reason": [
+        "compliance=fail",
+        "analyst=concern",
+        "impossible_date"
+      ]
+    },
+    "wrong_ticker": {
+      "description": "A ticker that does not exist in the official SEC list.",
+      "caught_if": [
+        "rejected",
+        "flagged_for_review",
+        "approved_with_conditions"
+      ],
+      "right_reason": [
+        "ticker_unknown"
+      ]
+    },
+    "clone_fund": {
+      "description": "A copy of an existing fund in the file under a new ticker (same name).",
+      "caught_if": [
+        "rejected",
+        "flagged_for_review",
+        "approved_with_conditions",
+        "quarantined"
+      ],
+      "right_reason": [
+        "shared_name",
+        "duplicate_id",
+        "duplicate_row"
+      ]
+    },
+    "cheap_vs_cap_expensive_vs_peers": {
+      "description": "Fee just under the cap but far above its category average.",
+      "caught_if": [
+        "rejected",
+        "approved_with_conditions",
+        "flagged_for_review"
+      ],
+      "right_reason": [
+        "finance=concern",
+        "finance=fail"
+      ]
+    },
+    "category_mismatch": {
+      "description": "A name that clearly contradicts the category (e.g. a municipal bond fund filed as Large Growth).",
+      "caught_if": [
+        "rejected",
+        "flagged_for_review",
+        "approved_with_conditions"
+      ],
+      "right_reason": [
+        "ai_inconsistency",
+        "compliance=concern",
+        "analyst=cannot_assess",
+        "suitability=concern"
+      ]
+    },
+    "missing_fee": {
+      "description": "The fee cell left empty.",
+      "caught_if": [
+        "quarantined"
+      ],
+      "right_reason": [
+        "quarantine"
+      ]
+    },
+    "stale_data": {
+      "description": "Figures dated two years earlier than every other fund in the file. (FundSentinel has no explicit rule for this.)",
+      "caught_if": [
+        "rejected",
+        "flagged_for_review",
+        "approved_with_conditions"
+      ],
+      "right_reason": [
+        "stale",
+        "as_of_date"
+      ]
+    }
   }
 }

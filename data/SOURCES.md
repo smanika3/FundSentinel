@@ -37,6 +37,6 @@ Built by `scripts/make_test_files.py` from real Yahoo rows with a fixed seed. Ea
 
 ## Known problem in the Yahoo data
 
-Many rows have a fund name that belongs to a different fund: the same share-class name appears under several tickers
+Many rows have a fund name that belongs to a different fund (only 267 of 23,783 names are unique): the same share-class name appears under several tickers
 (e.g. "DWS RREEF Real Assets Fund - Class A" on 4 tickers) and VFIAX carries "BNY Mellon Technology Growth Fund Class A".
 Treat `fund_long_name` as unreliable; identity should be confirmed against the SEC ticker file.
