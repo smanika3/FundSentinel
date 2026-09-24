@@ -54,7 +54,8 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 - [x] Profiler agent (`fundsentinel/agents/profiler.py`): code profiles columns, agent proposes mapping with unit + confidence, code checks it, rejected fields go back for up to 3 rounds. Yahoo: 15/16 vs answer key on first try (the 16th was an equivalent constant). India (never seen): percent units, crore multiplier, 1-6 risk rescale, INR, refused to invent dates. Pipeline uses it when `--mapping` is omitted; `--context` carries uploader facts (e.g. snapshot date).
 - [x] Reviewer errors become `cannot_assess` instead of crashing; expired login stops the run with a clear message
 - [ ] Stage 1 agents: Quality → Transform → Metadata (SelfHeal can start as a stub)
-- [ ] India end-to-end run through the Profiler (blocked on login expiry at the time of writing)
+- [x] India end-to-end through the Profiler (no code changes): 13 fields mapped in 1 round. Fund-size rule now in USD via mock FX (`config/fx.json`); found because a ₹10 crore fund was passing a $50M minimum.
+- [x] Brief Bedrock outages retried twice; partial re-runs keep the run's totals correct
 - [x] Other reviewers: Analyst, Compliance (Opus), Suitability
 - [x] Simple orchestrator (`fundsentinel/pipeline.py`, reviewers in parallel) + Decision owner (Layer 1 rules in code, Layer 2 Opus)
       First run (8 funds, 156 s): all 5 decision types produced. Decision owner caught a **real Kaggle data error**: VFIAX row carries the name "BNY Mellon Technology Growth Fund Class A". Use in the demo; confirm with the SEC ticker file.

@@ -7,6 +7,11 @@ _NUM = r"[-+]?\d*\.?\d+"
 
 
 def parse_rate(raw, unit: str = "auto", max_plausible: float | None = None):
+    value, note = _parse_rate(raw, unit, max_plausible)
+    return (None if value is None else round(value, 10)), note
+
+
+def _parse_rate(raw, unit: str = "auto", max_plausible: float | None = None):
     """Convert a rate to a fraction. Returns (value, note).
 
     unit: "fraction" (0.0075), "percent" (0.75), "bps" (75), or "auto" (detect from text / magnitude).

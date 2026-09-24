@@ -13,11 +13,23 @@
     "note": "Concern if 5y return trails the category by more than 2 points. A 1y return above 100% is treated as a data problem, not good performance."
   },
   "compliance": {
-    "prohibited_category_keywords": ["leveraged", "inverse", "trading--", "bear market"],
-    "min_total_net_assets": 50000000,
+    "prohibited_category_keywords": [
+      "leveraged",
+      "inverse",
+      "trading--",
+      "bear market"
+    ],
+    "min_total_net_assets_usd": 50000000,
     "min_track_record_years": 1,
-    "required_fields": ["fund_id", "fund_name", "category", "expense_ratio", "risk_score", "as_of_date"],
-    "note": "Any compliance fail means the fund is rejected (Decision owner layer 1)."
+    "required_fields": [
+      "fund_id",
+      "fund_name",
+      "category",
+      "expense_ratio",
+      "risk_score",
+      "as_of_date"
+    ],
+    "note": "Any compliance fail means the fund is rejected (Decision owner layer 1). Fund size is converted to USD with config/fx.json."
   },
   "suitability": {
     "general_investor_max_risk": 4,

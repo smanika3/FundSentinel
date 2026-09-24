@@ -21,7 +21,7 @@ def build(records: dict[str, Record]) -> Agent:
         rec = records.get(fund_id)
         if rec is None:
             return unknown(fund_id)
-        names = ["fund_name", "category", "total_net_assets", "inception_date", "fund_age_years", "as_of_date"]
+        names = ["fund_name", "category", "currency", "total_net_assets", "inception_date", "fund_age_years", "as_of_date"]
         return {"fund_id": fund_id, **{n: fact(rec, n) for n in names},
                 "missing_required_fields": [f for f in rules["required_fields"] if rec.get(f) is None]}
 
@@ -36,9 +36,14 @@ def build(records: dict[str, Record]) -> Agent:
         hits = [k for k in rules["prohibited_category_keywords"] if k in text]
         out.append({"rule": "compliance.prohibited_category_keywords", "field": "category",
                     "value": rec.get("category"), "matched": hits, "outcome": "fail" if hits else "pass"})
-        tna = rec.get("total_net_assets")
-        out.append({"rule": f"compliance.min_total_net_assets={rules['min_total_net_assets']}", "value": tna,
-                    "outcome": "cannot_assess" if tna is None else ("fail" if tna < rules["min_total_net_assets"] else "pass")})
+        tna, ccy = rec.get("total_net_assets"), rec.get("currency") or "USD"
+        rate = settings.fx().get(ccy)
+        tna_usd = None if tna is None or rate is None else round(tna * rate)
+        out.append({"rule": f"compliance.min_total_net_assets_usd={rules['min_total_net_assets_usd']}",
+                    "field": "total_net_assets_usd", "value": tna_usd, "source_ref": "computed",
+                    "computation": f"{tna} {ccy} x {rate} (mock fx, config/fx.json)",
+                    "outcome": "cannot_assess" if tna_usd is None else
+                               ("fail" if tna_usd < rules["min_total_net_assets_usd"] else "pass")})
         years = history_years(rec)
         out.append({"rule": f"compliance.min_track_record_years={rules['min_track_record_years']}",
                     "field": "history_years", "value": None if years is None else round(years, 2), "source_ref": "computed",

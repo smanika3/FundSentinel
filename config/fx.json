@@ -1,0 +1,5 @@
+{
+  "note": "Mock, fixed exchange rates to USD for comparing fund sizes across markets. Not live rates; demo only.",
+  "as_of": "2023-04-26",
+  "to_usd": {"USD": 1.0, "INR": 0.0122, "TRY": 0.0515, "EUR": 1.10, "GBP": 1.25}
+}

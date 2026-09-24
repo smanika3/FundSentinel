@@ -122,6 +122,11 @@ def save_run(summary: dict, results: list[dict]):
                 created_at=now()""",
            [{"run_id": run_id, "fund_id": r["fund_id"], **{k: r["decision"][k] for k in
              ("decision", "decided_by", "rule_applied", "reason", "conditions")}} for r in results])
+    # A partial re-run (e.g. one fund) must not shrink the run's totals: recount from the tables.
+    sql("""UPDATE runs SET funds = (SELECT count(*) FROM decisions WHERE run_id = :run_id),
+             decisions = (SELECT jsonb_object_agg(decision, n) FROM
+                          (SELECT decision, count(*) n FROM decisions WHERE run_id = :run_id GROUP BY decision) t)
+           WHERE run_id = :run_id""", {"run_id": run_id})
 
 
 # ---------- S3 ----------

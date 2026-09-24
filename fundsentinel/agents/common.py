@@ -1,5 +1,7 @@
 """Shared plumbing for reviewer agents: provenance-carrying facts and a standard agent builder."""
 
+import time
+
 from strands import Agent
 from strands.models import BedrockModel
 
@@ -59,13 +61,22 @@ def is_auth_error(e: Exception) -> bool:
     return any(k in f"{type(e).__name__} {e}" for k in AUTH_ERRORS)
 
 
-def safe_review(agent: Agent, fund_id: str) -> Verdict:
-    """Never let one reviewer crash the pipeline: errors become cannot_assess. Expired logins stop the run."""
-    try:
-        return review(agent, fund_id)
-    except Exception as e:
-        if is_auth_error(e):
-            raise LoginExpired("AWS login expired. Run: aws login --profile fundsentinel, then re-run "
-                               "(same file + mapping reuses the run ID, so nothing is duplicated).") from e
-        return Verdict(reviewer=agent.name, fund_id=fund_id, verdict="cannot_assess", evidence=[], confidence=0,
-                       reason=f"The {agent.name} reviewer could not run ({type(e).__name__}); needs a re-run.")
+TRANSIENT_ERRORS = ("ServiceUnavailable", "Throttling", "TooManyRequests", "ModelNotReady", "InternalServer")
+
+
+def safe_review(agent: Agent, fund_id: str, retries: int = 2) -> Verdict:
+    """Never let one reviewer crash the pipeline: brief outages are retried, other errors become cannot_assess.
+    Expired logins stop the run."""
+    for attempt in range(retries + 1):
+        try:
+            return review(agent, fund_id)
+        except Exception as e:
+            if is_auth_error(e):
+                raise LoginExpired("AWS login expired. Run: aws login --profile fundsentinel, then re-run "
+                                   "(same file + mapping reuses the run ID, so nothing is duplicated).") from e
+            transient = any(k in f"{type(e).__name__} {e}" for k in TRANSIENT_ERRORS)
+            if transient and attempt < retries:
+                time.sleep(5 * (attempt + 1))
+                continue
+            return Verdict(reviewer=agent.name, fund_id=fund_id, verdict="cannot_assess", evidence=[], confidence=0,
+                           reason=f"The {agent.name} reviewer could not run ({type(e).__name__}); needs a re-run.")

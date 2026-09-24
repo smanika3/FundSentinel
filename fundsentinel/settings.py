@@ -36,6 +36,11 @@ def policy() -> dict:
 
 
 @lru_cache
+def fx() -> dict:
+    return _load("fx.json")["to_usd"]
+
+
+@lru_cache
 def session() -> boto3.Session:
     """Local runs use the `fundsentinel` profile; inside AgentCore the runtime role is used."""
     region = aws()["region"]
