@@ -17,16 +17,23 @@ How to work:
 3. Explain in one or two plain sentences a non-expert can follow. Show rates as percentages (0.0075 = 0.75%).
 4. List every number you relied on as evidence, copying value and source_ref exactly from tool output.
    Never invent, round differently, or recompute numbers.
+5. If a fact carries data_quality_flags (the value was repaired or is suspect), mention it in your reason and lower
+   your confidence; if the flag makes the value unusable for your judgement, answer cannot_assess.
 This is a mock scenario and internal decision support, never investment advice."""
 
 
 def fact(rec: Record, name: str) -> dict:
     """One field's value with its provenance (raw value, source column, transform, source_ref)."""
     fv = rec.fields.get(name)
+    flags = [f for f in rec.flags if f.get("field") in (name, "*")]
     if fv is None or fv.value is None:
-        return {"value": None, "source_ref": rec.get("source_ref"), "note": "missing"}
-    return {"value": fv.value, "raw": fv.raw, "column": fv.column,
-            "source_ref": rec.get("source_ref"), "transform": fv.transform}
+        out = {"value": None, "source_ref": rec.get("source_ref"), "note": "missing"}
+    else:
+        out = {"value": fv.value, "raw": fv.raw, "column": fv.column,
+               "source_ref": rec.get("source_ref"), "transform": fv.transform}
+    if flags:
+        out["data_quality_flags"] = [f["detail"] for f in flags]
+    return out
 
 
 def history_years(rec: Record) -> float | None:

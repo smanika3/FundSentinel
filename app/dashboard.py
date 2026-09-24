@@ -17,7 +17,8 @@ from fundsentinel import store
 st.set_page_config(page_title="FundSentinel", layout="wide")
 
 DECISION_LABEL = {"approved": "Approved", "approved_with_conditions": "Approved with conditions",
-                  "rejected": "Rejected", "flagged_for_review": "Flagged for review", "sent_back": "Sent back"}
+                  "rejected": "Rejected", "flagged_for_review": "Flagged for review", "sent_back": "Sent back",
+                  "quarantined": "Quarantined"}
 VERDICT_ICON = {"pass": "✅ pass", "concern": "⚠️ concern", "fail": "❌ fail", "cannot_assess": "❔ cannot assess"}
 
 
@@ -47,7 +48,7 @@ decisions = q("""SELECT d.fund_id, f.fund_name, f.category, d.decision, d.decide
                  FROM decisions d JOIN funds f USING (run_id, fund_id) WHERE d.run_id = :r ORDER BY d.fund_id""", r=run_id)
 verdicts = q("SELECT fund_id, reviewer, verdict, reason, evidence, confidence FROM verdicts WHERE run_id = :r", r=run_id)
 
-tab_decisions, tab_fund, tab_mapping = st.tabs(["Decisions", "Fund story", "Column mapping"])
+tab_decisions, tab_fund, tab_quality, tab_mapping = st.tabs(["Decisions", "Fund story", "Data quality", "Column mapping"])
 
 with tab_decisions:
     counts = decisions.decision.value_counts()
@@ -55,12 +56,15 @@ with tab_decisions:
     for col, (key, label) in zip(cols, DECISION_LABEL.items()):
         col.metric(label, int(counts.get(key, 0)))
 
-    grid = verdicts.pivot(index="fund_id", columns="reviewer", values="verdict").map(lambda v: VERDICT_ICON.get(v, v))
-    table = decisions.set_index("fund_id")[["fund_name", "category", "decision", "decided_by"]].join(grid)
+    table = decisions.set_index("fund_id")[["fund_name", "category", "decision", "decided_by"]]
+    if not verdicts.empty:
+        grid = verdicts.pivot(index="fund_id", columns="reviewer", values="verdict").map(lambda v: VERDICT_ICON.get(v, v))
+        table = table.join(grid)
     table["decision"] = table.decision.map(DECISION_LABEL)
     st.dataframe(table, width="stretch")
 
-    stuck = verdicts[verdicts.verdict.isin(["fail", "cannot_assess"])].reviewer.value_counts()
+    stuck = (verdicts[verdicts.verdict.isin(["fail", "cannot_assess"])].reviewer.value_counts()
+             if not verdicts.empty else pd.Series(dtype=int))
     if not stuck.empty:
         st.markdown(f"**Where funds get stuck:** most fails / unassessable results come from "
                     f"**{stuck.index[0]}** ({stuck.iloc[0]} of {len(decisions)} funds).")
@@ -94,8 +98,33 @@ with tab_fund:
     prov = pd.DataFrame([{"field": k, **v} for k, v in rec["fields"].items()])
     prov[["value", "raw"]] = prov[["value", "raw"]].map(lambda x: "" if x is None else str(x))
     st.dataframe(prov, width="stretch", hide_index=True)
-    if rec["issues"]:
-        st.warning("Data issues: " + "; ".join(rec["issues"]))
+    if rec.get("flags"):
+        st.warning("Data-quality flags: " + " · ".join(f["detail"] for f in rec["flags"]))
+    if rec.get("quarantine_reason"):
+        st.error("Quarantined: " + rec["quarantine_reason"])
+
+with tab_quality:
+    qrow = q("SELECT quality FROM runs WHERE run_id = :r", r=run_id)
+    qual = _json(qrow.quality.iloc[0]) if not qrow.empty and qrow.quality.iloc[0] else None
+    if not qual:
+        st.info("No data-quality report for this run (it predates the Quality and SelfHeal agents).")
+    else:
+        rep, stats = qual.get("report") or {}, qual.get("stats") or {}
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Quality score", f"{rep.get('score')}/100" if rep.get("score") is not None else "n/a")
+        c2.metric("Issues found (whole file)", stats.get("issues", 0))
+        c3.metric("Quarantined", stats.get("quarantined", 0))
+        c4.metric("Flagged", stats.get("flagged", 0))
+        st.write(rep.get("summary", ""))
+        for t in rep.get("top_problems", []):
+            st.markdown(f"- {t}")
+        issues = q("""SELECT fund_id, field, kind, action, decided_by, confidence, new_value, reason, detail
+                      FROM quality_issues WHERE run_id = :r ORDER BY action, fund_id""", r=run_id)
+        if not issues.empty:
+            st.markdown("#### What was found and what was done")
+            st.caption("decided_by: **rule** = fixed code rule · **selfheal** = SelfHeal agent · "
+                       "**guardrail** = code overruled the agent · **quality** = found by the Quality agent")
+            st.dataframe(issues, width="stretch", hide_index=True)
 
 with tab_mapping:
     st.markdown("How each source column was mapped onto the standard schema, and whether the code check accepted it.")

@@ -46,13 +46,17 @@ class Record:
     fund_id: str | None
     fields: dict[str, FieldValue] = field(default_factory=dict)
     issues: list[str] = field(default_factory=list)
+    flags: list[dict] = field(default_factory=list)   # data-quality flags added by Quality / SelfHeal
+    status: str = "ok"                                # ok | flagged | quarantined
+    quarantine_reason: str | None = None
 
     def get(self, name):
         fv = self.fields.get(name)
         return None if fv is None else fv.value
 
     def to_dict(self):
-        return {"fund_id": self.fund_id, "fields": {k: asdict(v) for k, v in self.fields.items()}, "issues": self.issues}
+        return {"fund_id": self.fund_id, "fields": {k: asdict(v) for k, v in self.fields.items()}, "issues": self.issues,
+                "flags": self.flags, "status": self.status, "quarantine_reason": self.quarantine_reason}
 
 
 def _convert(spec: dict, ftype: dict, raw):
@@ -127,6 +131,20 @@ def validate_mapping(mapping: dict, df: pd.DataFrame, sample: int = 500) -> list
             except (ValueError, TypeError):
                 failed += 1
         parse_rate = 1 - failed / len(values)
+        if ftype["type"] == "int" and "scale" in spec and list(spec["scale"]) != [ftype.get("min"), ftype.get("max")]:
+            nums = []
+            for v in values:
+                try:
+                    nums.append(normalise.parse_number(v))
+                except (ValueError, TypeError):
+                    pass
+            native = sum(1 for n in nums if n is not None and ftype["min"] <= n <= ftype["max"]) / max(len(nums), 1)
+            if native >= 0.9:
+                checks.append(FieldCheck(name, col, conf, False,
+                                         f"{native:.0%} of values are already on the {ftype['min']}-{ftype['max']} scale; "
+                                         f"the proposed scale {spec['scale']} comes from outliers. Drop `scale` and leave "
+                                         f"outliers for Quality", round(parse_rate, 3), round(native, 3)))
+                continue
         in_range = sum(_in_range(ftype, p) for p in parsed) / len(parsed) if parsed else 0.0
         ok = parse_rate >= MIN_PARSE_RATE and in_range >= MIN_IN_RANGE_RATE
         reason = "ok" if ok else (

@@ -25,6 +25,12 @@ SCHEMA_SQL = [
     """CREATE TABLE IF NOT EXISTS decisions (
         run_id text, fund_id text, decision text, decided_by text, rule_applied text, reason text,
         conditions jsonb, created_at timestamptz DEFAULT now(), PRIMARY KEY (run_id, fund_id))""",
+    """CREATE TABLE IF NOT EXISTS quality_issues (
+        run_id text, issue_id text, fund_id text, row_num int, field text, kind text, detail text, raw text,
+        candidates jsonb, action text, new_value text, confidence real, decided_by text, reason text,
+        PRIMARY KEY (run_id, issue_id))""",
+    "ALTER TABLE funds ADD COLUMN IF NOT EXISTS status text",
+    "ALTER TABLE runs ADD COLUMN IF NOT EXISTS quality jsonb",
 ]
 
 
@@ -100,14 +106,30 @@ def save_run(summary: dict, results: list[dict]):
              "confidence": None if c["confidence"] is None else float(c["confidence"]), "accepted": c["accepted"],
              "reason": c["reason"], "parse_rate": c["parse_rate"], "in_range_rate": c["in_range_rate"]}
             for c in summary["mapping_checks"]])
-    _batch("""INSERT INTO funds VALUES (:run_id, :fund_id, :fund_name, :category, :source_ref, :issues, :record)
+    _batch("""INSERT INTO funds (run_id, fund_id, fund_name, category, source_ref, issues, record, status)
+              VALUES (:run_id, :fund_id, :fund_name, :category, :source_ref, :issues, :record, :status)
               ON CONFLICT (run_id, fund_id) DO UPDATE SET fund_name=EXCLUDED.fund_name, category=EXCLUDED.category,
-                source_ref=EXCLUDED.source_ref, issues=EXCLUDED.issues, record=EXCLUDED.record""",
+                source_ref=EXCLUDED.source_ref, issues=EXCLUDED.issues, record=EXCLUDED.record, status=EXCLUDED.status""",
            [{"run_id": run_id, "fund_id": r["fund_id"],
              "fund_name": r["record"]["fields"].get("fund_name", {}).get("value"),
              "category": r["record"]["fields"].get("category", {}).get("value"),
              "source_ref": r["record"]["fields"]["source_ref"]["value"],
-             "issues": r["record"]["issues"], "record": r["record"]} for r in results])
+             "issues": r["record"]["issues"], "record": r["record"], "status": r["record"].get("status", "ok")}
+            for r in results])
+    if summary.get("quality"):
+        sql("UPDATE runs SET quality = :q WHERE run_id = :run_id", {"q": summary["quality"], "run_id": run_id})
+    if summary.get("quality_issues"):
+        _batch("""INSERT INTO quality_issues VALUES (:run_id, :issue_id, :fund_id, :row_num, :field, :kind, :detail, :raw,
+                    :candidates, :action, :new_value, :confidence, :decided_by, :reason)
+                  ON CONFLICT (run_id, issue_id) DO UPDATE SET fund_id=EXCLUDED.fund_id, detail=EXCLUDED.detail,
+                    candidates=EXCLUDED.candidates, action=EXCLUDED.action, new_value=EXCLUDED.new_value,
+                    confidence=EXCLUDED.confidence, decided_by=EXCLUDED.decided_by, reason=EXCLUDED.reason""",
+               [{"run_id": run_id, "issue_id": i["issue_id"], "fund_id": i["fund_id"], "row_num": i["row"],
+                 "field": i["field"], "kind": i["kind"], "detail": i["detail"],
+                 "raw": None if i["raw"] is None else str(i["raw"]), "candidates": i["candidates"],
+                 "action": i["action"], "new_value": None if i["new_value"] is None else str(i["new_value"]),
+                 "confidence": None if i["confidence"] is None else float(i["confidence"]),
+                 "decided_by": i["decided_by"], "reason": i["reason"]} for i in summary["quality_issues"]])
     _batch("""INSERT INTO verdicts (run_id, fund_id, reviewer, verdict, reason, evidence, confidence)
               VALUES (:run_id, :fund_id, :reviewer, :verdict, :reason, :evidence, :confidence)
               ON CONFLICT (run_id, fund_id, reviewer) DO UPDATE SET verdict=EXCLUDED.verdict, reason=EXCLUDED.reason,
@@ -146,3 +168,8 @@ def save_s3(summary: dict, results: list[dict]):
         [{"fund_id": r["fund_id"], **v} for r in results for v in r["verdicts"]]))
     put(f"reports/{run_id}/decisions.jsonl", jsonl([r["decision"] for r in results]))
     put(f"reports/{run_id}/summary.json", json.dumps(summary, indent=2, default=str))
+    put(f"metadata/{run_id}/quality_report.json", json.dumps(summary.get("quality"), indent=2, default=str))
+    put(f"metadata/{run_id}/quality_issues.jsonl", jsonl(summary.get("quality_issues") or []))
+    quarantined = [r["record"] for r in results if r["decision"]["decision"] == "quarantined"]
+    if quarantined:
+        put(f"quarantine/{run_id}/records.jsonl", jsonl(quarantined))

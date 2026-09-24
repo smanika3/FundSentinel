@@ -8,7 +8,10 @@ Mock scenario and synthetic or public data only. Output is internal decision sup
 
 ```
 CSV (any column names)
-  → mapping, checked by code (type, unit, range) → canonical records with field-level provenance
+  → Profiler agent proposes the column mapping; code checks it (type, unit, range) and sends rejects back
+  → canonical records with field-level provenance
+  → Quality: code detectors over the whole file + Quality agent report and inconsistency scan
+  → SelfHeal agent: fix / flag / quarantine / dismiss (every fix re-checked by code); quarantined funds skip the committee
   → 4 reviewers in parallel: Analyst · Compliance · Finance · Suitability   (each: code tools for facts + rules, AI writes the verdict with evidence)
   → Decision owner: layer 1 fixed rules in code, layer 2 Claude Opus 5
   → S3 (clean data, provenance, evidence, reports) + Aurora Postgres record book

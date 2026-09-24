@@ -50,6 +50,7 @@ Rules:
 - Units matter more than names. Decide from the value ranges: an expense ratio column with median 0.9 is percent; with median 0.009 it is a fraction.
   Returns: median 12 means percent, median 0.12 means fraction.
 - risk_score must be 1-5. If the source uses another scale, give it in `scale` so code can rescale.
+  Derive a scale from the column's typical range, never from one or two outliers (a single 9 among 1-5 values is bad data, not a 1-9 scale).
 - Money in crore, lakh, millions or thousands needs a `multiplier`. Text like "$1.2B" or "350M" is read by code; no multiplier.
 - Rate columns may mix formats ("75 bps", "0.75%"); code reads explicit suffixes per value. Set `unit` for bare numbers.
 - risk_score given as words needs a `value_map` covering every distinct word (e.g. {"Low": 1, ..., "High": 5}).

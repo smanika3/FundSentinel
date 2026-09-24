@@ -55,7 +55,9 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 - [x] Profiler agent (`fundsentinel/agents/profiler.py`): code profiles columns, agent proposes mapping with unit + confidence, code checks it, rejected fields go back for up to 3 rounds. Yahoo: 15/16 vs answer key on first try (the 16th was an equivalent constant). India (never seen): percent units, crore multiplier, 1-6 risk rescale, INR, refused to invent dates. Pipeline uses it when `--mapping` is omitted; `--context` carries uploader facts (e.g. snapshot date).
 - [x] Reviewer errors become `cannot_assess` instead of crashing; expired login stops the run with a clear message
 - [x] Profiler on `funds_alt_columns.csv`: 15/15 vs answer key; **self-correction loop fired** (round 1 typo'd a column name, code rejected it, round 2 fixed it)
-- [ ] Stage 1 agents: Quality → Transform → Metadata (SelfHeal can start as a stub)
+- [x] **Quality** (`fundsentinel/quality.py` code detectors + `agents/quality.py` report and AI inconsistency scan) and **SelfHeal** (`agents/selfheal.py`, fix / flag / quarantine / dismiss, every fix re-checked by code). Scored with `scripts/score_quality.py`: **13/13 planted problems caught and handled as expected** on `funds_broken.csv`. Quality agent independently found the Yahoo category scramble (8 funds). Dashboard has a Data quality tab. Live on AgentCore.
+      Fixed on the way: the Profiler once turned a single risk=9 outlier into a 1-9 scale (silently rescaling every fund). Code now rejects a scale when 90%+ of values already fit 1-5.
+- [ ] Stage 1 agents: Transform → Metadata
       Quality must catch: Yahoo has **name/ticker mix-ups** in many rows (same Class-A name under several tickers, e.g. 'DWS RREEF Real Assets Fund - Class A' on 4 tickers; VFIAX named as a BNY Mellon fund). Cross-check with the SEC ticker file.
 - [x] India end-to-end through the Profiler (no code changes): 13 fields mapped in 1 round. Fund-size rule now in USD via mock FX (`config/fx.json`); found because a ₹10 crore fund was passing a $50M minimum.
 - [x] Brief Bedrock outages retried twice; partial re-runs keep the run's totals correct
