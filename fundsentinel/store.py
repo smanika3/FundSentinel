@@ -42,6 +42,9 @@ SCHEMA_SQL = [
     """CREATE TABLE IF NOT EXISTS stale_evidence (
         run_id text, fund_id text, reviewer text, field text, old_value text, rule text, source_ref text,
         PRIMARY KEY (run_id, fund_id, reviewer, field))""",
+    """CREATE TABLE IF NOT EXISTS run_progress (
+        run_id text PRIMARY KEY, status text, step int, done int, total int, lines jsonb, file text, run_type text,
+        detail text, error text, started_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now())""",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS baseline_run_id text",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS redteam jsonb",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS dataset_description text",
@@ -243,3 +246,36 @@ def save_radar(summary: dict, results: list[dict]):
     sql("DELETE FROM stale_evidence WHERE run_id = :r", {"r": run_id})
     _batch("""INSERT INTO stale_evidence VALUES (:run_id, :fund_id, :reviewer, :field, :old_value, :rule, :source_ref)""",
            list(stale.values()))
+
+
+class Progress:
+    """Live progress for the web app's Run page. Steps (0-6) follow the UI: understanding the columns, checking data
+    quality, repairing and flagging, documenting, committee reviewing funds, checking the evidence, final decisions."""
+
+    def __init__(self, run_id: str, file: str, run_type: str = "review"):
+        self.run_id = run_id
+        init_db()
+        sql("""INSERT INTO run_progress (run_id, status, step, done, total, lines, file, run_type, detail, error)
+               VALUES (:r, 'running', 0, 0, 0, '[]'::jsonb, :f, :t, NULL, NULL)
+               ON CONFLICT (run_id) DO UPDATE SET status='running', step=0, done=0, total=0, lines='[]'::jsonb,
+                 file=EXCLUDED.file, run_type=EXCLUDED.run_type, detail=NULL, error=NULL, started_at=now(), updated_at=now()""",
+            {"r": run_id, "f": file, "t": run_type})
+
+    def step(self, n: int, detail: str | None = None, total: int | None = None):
+        sets, params = ["step = :n", "updated_at = now()"], {"r": self.run_id, "n": n}
+        if detail is not None:
+            sets.append("detail = :d"); params["d"] = detail
+        if total is not None:
+            sets.append("total = :t"); params["t"] = total
+        sql(f"UPDATE run_progress SET {', '.join(sets)} WHERE run_id = :r", params)
+
+    def fund(self, line: dict):
+        sql("""UPDATE run_progress SET done = done + 1, lines = COALESCE(lines, '[]'::jsonb) || jsonb_build_array(:line),
+               updated_at = now() WHERE run_id = :r""", {"r": self.run_id, "line": line})
+
+    def finish(self):
+        sql("UPDATE run_progress SET status = 'done', step = 7, updated_at = now() WHERE run_id = :r", {"r": self.run_id})
+
+    def fail(self, error: str):
+        sql("UPDATE run_progress SET status = 'failed', error = :e, updated_at = now() WHERE run_id = :r",
+            {"r": self.run_id, "e": error[:1000]})

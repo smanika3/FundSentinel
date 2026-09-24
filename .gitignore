@@ -26,7 +26,7 @@ node_modules/
 fundsentinel_system_architecture_v2.png
 
 # Local pipeline outputs (the durable copy goes to S3/RDS)
-runs/
+/runs/
 
 # AgentCore CDK node modules / build output
 agentcore/cdk/node_modules/
@@ -42,3 +42,12 @@ plan.md
 FundSentinel Full Plan.md
 docs/ui_design_prompt.md
 docs/HOW_IT_WORKS.md
+
+# Web app build output
+.next/
+*.tsbuildinfo
+next-env.d.ts
+
+# Claude Design export (web/components/ds.js is the converted copy we use)
+FundSentinel Design System.zip
+design/

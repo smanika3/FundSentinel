@@ -86,7 +86,7 @@ def stage1_transform_and_metadata(df, mapping, kept, source_name, context, stats
 
 def run(source: str, mapping_path: str | None = None, limit: int | None = None, fund_ids: list[str] | None = None,
         run_id: str | None = None, out_dir: str = "runs", persist: bool = True, context: str = "",
-        stage1_only: bool = False, use_supervisor: bool = True, workers: int = 3) -> dict:
+        stage1_only: bool = False, use_supervisor: bool = True, workers: int = 3, progress=None) -> dict:
     started = time.time()
     df = normalise.load_csv(source)
     source_name = "/".join(Path(source).parts[-2:])
@@ -102,6 +102,8 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
 
     checks = mp.validate_mapping(mapping, df)
     all_records = mp.apply_mapping(mapping, df, checks, source_name)
+    if progress:
+        progress.step(1, f"{sum(c.accepted for c in checks)} columns understood")
 
     # ---- Stage 1: Quality -> SelfHeal -> apply -> Quality report ----
     issues = quality.detect(df, all_records)
@@ -113,6 +115,8 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
     else:
         scope = candidates[: limit or len(candidates)]
     scope_ids = {r.fund_id for r in scope}
+    if progress:
+        progress.step(2, f"{len(issues)} problems found")
     healed = selfheal.heal(issues, scope_ids)
     kept = quality.apply(all_records, issues)
     stats = quality.summary(issues, kept)
@@ -136,6 +140,8 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
     print(f"Quality: {stats['issues']} issues in file, {len(healed)} sent to SelfHeal; in scope: "
           f"{sum(r.status == 'quarantined' for r in scope)} quarantined, {sum(r.status == 'flagged' for r in scope)} flagged")
 
+    if progress:
+        progress.step(3, f"{len(healed)} problems judged by SelfHeal")
     # ---- Stage 1 continued: Transform -> Metadata ----
     transform_info, dictionary = stage1_transform_and_metadata(df, mapping, kept, source_name, context, stats, qreport)
 
@@ -161,13 +167,23 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
         print(f"{fid[:30]:30s} {dec.decision:26s} ({dec.decided_by}) "
               + " ".join(f"{v.reviewer[:4]}={v.verdict}" for v in verdicts)
               + (f"  [{sends} send-back(s)]" if sends else "") + f"  {time.time() - t:.0f}s", flush=True)
+        if progress:
+            progress.fund({"ticker": fid, "name": records[fid].get("fund_name") or fid,
+                           "decision": dec.decision, "seconds": round(time.time() - t), "sendbacks": sends})
         return {"fund_id": fid, "record": records[fid].to_dict(),
                 "verdicts": [v.model_dump() for v in verdicts], "decision": dec.model_dump(),
                 "events": out["events"], "evidence_status": out["evidence_status"],
                 "supervisor": out["supervisor"], "seconds": round(time.time() - t, 1)}
 
+    if progress:
+        progress.step(4, f"{len(ids)} funds to review · {workers} at a time", total=len(ids) + len(results))
+        for r in results:  # funds set aside before the committee still count as finished
+            progress.fund({"ticker": r["fund_id"], "name": r["record"]["fields"].get("fund_name", {}).get("value") or r["fund_id"],
+                           "decision": "quarantined", "seconds": 0, "sendbacks": 0})
     with ThreadPoolExecutor(max_workers=max(1, min(workers, len(ids) or 1))) as pool:
         results.extend(pool.map(review_one, ids))
+    if progress:
+        progress.step(5)
 
     summary = {"run_id": run_id, "source": source_name, "mapping": mapping_path or "profiler-agent",
                "mapping_checks": [asdict(c) for c in checks], "mapping_used": mapping,
@@ -181,10 +197,14 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
     (out / "results.json").write_text(json.dumps(results, indent=2, default=str))
+    if progress:
+        progress.step(6, "Saving decisions")
     if persist:
         store.init_db()
         store.save_s3(summary, results)
         store.save_run(summary, results)
+    if progress:
+        progress.finish()
     for r in results:
         if r["decision"]["decision"] == "quarantined":
             print(f"{r['fund_id'][:30]:30s} quarantined                (rule) {r['decision']['reason']}")

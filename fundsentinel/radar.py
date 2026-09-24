@@ -115,8 +115,13 @@ def stale_evidence(verdict: Verdict, changed_fields: set, deps: dict) -> list[di
 
 # ---------- run ----------
 
+def radar_run_id(source: str, baseline_id: str) -> str:
+    h = hashlib.sha256(Path(source).read_bytes() + baseline_id.encode()).hexdigest()[:10]
+    return f"{Path(source).stem.lower()}-radar-{h}"
+
+
 def run(baseline_id: str, source: str, fund_ids: list[str] | None = None, persist: bool = True,
-        out_dir: str = "runs", workers: int = 3) -> dict:
+        out_dir: str = "runs", workers: int = 3, progress=None) -> dict:
     started = time.time()
     cfg = radar_config()
     base = load_baseline(baseline_id)
@@ -141,6 +146,9 @@ def run(baseline_id: str, source: str, fund_ids: list[str] | None = None, persis
     new_records = {r.fund_id: r for r in kept if r.fund_id in scope}
 
     changes, added, removed = diff(base["records"], new_records, cfg["numeric_tolerance"])
+    if progress:
+        progress.step(1, f"{len(changes)} changes found")
+        progress.step(2, "Deciding which changes matter")
     print(f"Radar: {len(changes)} changes across {len({c['fund_id'] for c in changes})} funds "
           f"({len(added)} new, {len(removed)} missing)")
 
@@ -166,6 +174,9 @@ def run(baseline_id: str, source: str, fund_ids: list[str] | None = None, persis
                 r["why"] += f" Guardrail added {sorted(missing)} ({c['field']} crossed a policy threshold)."
 
     # Re-review
+    if progress:
+        progress.step(3, f"{sum(1 for c in changes if c['materiality'] != 'routine')} changes that matter")
+        progress.step(4, f"Reopening only the affected reviews · {workers} funds at a time", total=len(new_records))
     deps = cfg["evidence_depends_on"]
     local = threading.local()
 
@@ -215,16 +226,26 @@ def run(baseline_id: str, source: str, fund_ids: list[str] | None = None, persis
                                               "stale_evidence": stale, "changes": fchanges},
                 "seconds": 0}
 
+    def process_and_report(fid):
+        t = time.time()
+        r = process(fid)
+        if progress:
+            progress.fund({"ticker": fid, "name": new_records[fid].get("fund_name") or fid, "decision": r["decision"]["decision"],
+                           "seconds": round(time.time() - t), "sendbacks": sum(1 for e in r["events"] if e["event"] == "sent_back"),
+                           "reopened": r["radar"]["reopened"]})
+        return r
+
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(process, list(new_records)))
+        results = list(pool.map(process_and_report, list(new_records)))
+    if progress:
+        progress.step(5)
     for r in results:
         before = base["decisions"].get(r["fund_id"], {}).get("decision")
         rr = r["radar"]
         print(f"{r['fund_id']:8s} {str(before):26s} -> {r['decision']['decision']:26s} reopened={rr['reopened'] or '-'} "
               f"stale={len(rr['stale_evidence'])}")
 
-    h = hashlib.sha256(Path(source).read_bytes() + baseline_id.encode()).hexdigest()[:10]
-    run_id = f"{Path(source).stem.lower()}-radar-{h}"
+    run_id = radar_run_id(source, baseline_id)
     summary = {"run_id": run_id, "source": source_name, "mapping": f"radar vs {baseline_id}",
                "baseline_run_id": baseline_id, "mapping_checks": [], "funds": len(results),
                "seconds": round(time.time() - started, 1),
@@ -235,11 +256,15 @@ def run(baseline_id: str, source: str, fund_ids: list[str] | None = None, persis
     out.mkdir(parents=True, exist_ok=True)
     (out / "summary.json").write_text(json.dumps(summary, indent=2, default=str))
     (out / "results.json").write_text(json.dumps(results, indent=2, default=str))
+    if progress:
+        progress.step(6, "Saving decisions")
     if persist:
         store.init_db()
         store.save_s3(summary, results)
         store.save_run(summary, results)
         store.save_radar(summary, results)
+    if progress:
+        progress.finish()
     print(json.dumps({k: summary[k] for k in ("run_id", "funds", "seconds", "decisions")}))
     return {"summary": summary, "results": results}
 

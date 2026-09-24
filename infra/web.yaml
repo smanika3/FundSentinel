@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: FundSentinel web app on Amplify Hosting - Next.js SSR from the CodeCommit repo, with scoped roles
+
+# Deploy: ./scripts/deploy_web.sh
+# The account denies attaching *Admin* managed policies, so both roles use scoped inline policies
+# instead of Amplify's default AdministratorAccess-Amplify role.
+
+Parameters:
+  Branch:
+    Type: String
+    Default: main
+  RuntimeArn:
+    Type: String
+    Default: arn:aws:bedrock-agentcore:us-east-1:736265634398:runtime/FundSentinel_pipeline-QBY1kv5VHa
+  DbClusterArn:
+    Type: String
+    Default: arn:aws:rds:us-east-1:736265634398:cluster:fundsentinel-db
+  DbSecretArn:
+    Type: String
+    Default: arn:aws:secretsmanager:us-east-1:736265634398:secret:rds!cluster-b6ba5a23-8c1b-4e30-890b-4ce7350f250e-pJtxGx
+  Bucket:
+    Type: String
+    Default: fundsentinel-736265634398-us-east-1
+  BasicAuthUser:
+    Type: String
+    Default: fundsentinel
+  BasicAuthPassword:
+    Type: String
+    NoEcho: true
+    MinLength: 8
+    Description: Password for the site (the app can start paid cloud runs, so it is not left open)
+
+Resources:
+  # Used by Amplify to pull from CodeCommit, build, and write SSR logs.
+  ServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fundsentinel-amplify-service
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: amplify.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: build
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: [codecommit:GitPull, codecommit:GetRepository, codecommit:GetBranch, codecommit:GetCommit]
+                Resource: !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:fundsentinel
+              - Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents, logs:DescribeLogGroups]
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/amplify/*
+      Tags: [{ Key: project, Value: fundsentinel }]
+
+  # Assumed by the running Next.js server: read the record book, list/upload files, start runs.
+  ComputeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: fundsentinel-amplify-compute
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: { Service: amplify.amazonaws.com }
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: app
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: RecordBook
+                Effect: Allow
+                Action: rds-data:ExecuteStatement
+                Resource: !Ref DbClusterArn
+              - Sid: RecordBookSecret
+                Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Ref DbSecretArn
+              - Sid: ListFiles
+                Effect: Allow
+                Action: s3:ListBucket
+                Resource: !Sub arn:aws:s3:::${Bucket}
+              - Sid: ReadReports
+                Effect: Allow
+                Action: s3:GetObject
+                Resource: !Sub arn:aws:s3:::${Bucket}/*
+              - Sid: UploadCsv
+                Effect: Allow
+                Action: s3:PutObject
+                Resource: !Sub arn:aws:s3:::${Bucket}/raw/uploads/*
+              - Sid: StartRuns
+                Effect: Allow
+                Action: bedrock-agentcore:InvokeAgentRuntime
+                Resource: [!Ref RuntimeArn, !Sub "${RuntimeArn}/*"]
+      Tags: [{ Key: project, Value: fundsentinel }]
+
+  App:
+    Type: AWS::Amplify::App
+    Properties:
+      Name: fundsentinel
+      Description: FundSentinel reviewer app - internal decision support on mock data
+      Repository: !Sub https://git-codecommit.${AWS::Region}.amazonaws.com/v1/repos/fundsentinel
+      IAMServiceRole: !GetAtt ServiceRole.Arn
+      ComputeRoleArn: !GetAtt ComputeRole.Arn
+      Platform: WEB_COMPUTE
+      BasicAuthConfig:
+        EnableBasicAuth: true
+        Username: !Ref BasicAuthUser
+        Password: !Ref BasicAuthPassword
+      EnvironmentVariables:
+        - { Name: AMPLIFY_MONOREPO_APP_ROOT, Value: web }
+      BuildSpec: |
+        version: 1
+        applications:
+          - appRoot: web
+            frontend:
+              phases:
+                preBuild:
+                  commands:
+                    - nvm install 22 && nvm use 22
+                    - npm ci
+                build:
+                  commands:
+                    - npm run build
+              artifacts:
+                baseDirectory: .next
+                files:
+                  - '**/*'
+              cache:
+                paths:
+                  - .next/cache/**/*
+                  - node_modules/**/*
+      Tags: [{ Key: project, Value: fundsentinel }]
+
+  MainBranch:
+    Type: AWS::Amplify::Branch
+    Properties:
+      AppId: !GetAtt App.AppId
+      BranchName: !Ref Branch
+      Stage: PRODUCTION
+      Framework: Next.js - SSR
+      EnableAutoBuild: true
+      Tags: [{ Key: project, Value: fundsentinel }]
+
+Outputs:
+  AppId:
+    Value: !GetAtt App.AppId
+  Url:
+    Value: !Sub https://${Branch}.${App.DefaultDomain}

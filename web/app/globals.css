@@ -1,0 +1,207 @@
+/* FundSentinel design tokens, copied from the Claude Design export (design/tokens). */
+/* FundSentinel webfonts — self-hosted copies of Google Fonts (OFL). Latin subset only. */
+@font-face{font-family:'Inter';font-style:normal;font-weight:400 700;font-display:swap;src:url('/fonts/Inter-normal.woff2') format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400 600;font-display:swap;src:url('/fonts/JetBrainsMono-normal.woff2') format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Source Serif 4';font-style:italic;font-weight:400 600;font-display:swap;src:url('/fonts/SourceSerif4-italic.woff2') format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+@font-face{font-family:'Source Serif 4';font-style:normal;font-weight:400 700;font-display:swap;src:url('/fonts/SourceSerif4-normal.woff2') format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;}
+/* FundSentinel colour tokens. Base values first, then semantic aliases. */
+:root{
+  /* Base palette — light */
+  --fs-ivory:#FAF9F5;
+  --fs-white:#FFFFFF;
+  --fs-sand:#F0EEE6;
+  --fs-line:#E8E6DC;
+  --fs-ink:#141413;
+  --fs-ink-2:#5E5D59;
+  --fs-ink-3:#87867F;
+  --fs-clay:#C96442;
+
+  /* Status base */
+  --fs-green:#2F6B45;--fs-green-soft:#E4EFE6;
+  --fs-amber:#8A5A0B;--fs-amber-soft:#F6ECD6;
+  --fs-red:#A63A2B;--fs-red-soft:#F6E3DF;
+  --fs-grey:#5E5D59;--fs-grey-soft:#EFEDE6;
+
+  /* Semantic — surfaces */
+  --bg-page:var(--fs-ivory);
+  --bg-surface:var(--fs-white);
+  --bg-subtle:var(--fs-sand);
+  --bg-hover:var(--fs-sand);
+  --bg-selected:var(--fs-sand);
+  --bg-code:var(--fs-sand);
+  --bg-highlight:#F6ECD6;
+  --bg-highlight-soft:#FBF5E8;
+  --border:var(--fs-line);
+  --border-strong:#D6D3C6;
+
+  /* Semantic — text */
+  --text:var(--fs-ink);
+  --text-2:var(--fs-ink-2);
+  --text-3:var(--fs-ink-3);
+  --text-inverse:var(--fs-ivory);
+
+  /* Semantic — brand (logo mark, active-nav bar, focus ring ONLY) */
+  --brand:var(--fs-clay);
+  --focus-ring:var(--fs-clay);
+  --nav-active-bar:var(--fs-clay);
+
+  /* Semantic — actions */
+  --btn-primary-bg:var(--fs-ink);
+  --btn-primary-fg:var(--fs-ivory);
+  --btn-primary-bg-hover:#2B2A28;
+  --btn-secondary-bg:var(--fs-white);
+  --btn-secondary-fg:var(--fs-ink);
+  --btn-secondary-border:var(--fs-line);
+
+  /* Semantic — status (always paired with an icon and a word) */
+  --status-good-fg:var(--fs-green);--status-good-bg:var(--fs-green-soft);--status-good-border:var(--fs-green);
+  --status-person-fg:var(--fs-amber);--status-person-bg:var(--fs-amber-soft);--status-person-border:var(--fs-amber);
+  --status-stop-fg:var(--fs-red);--status-stop-bg:var(--fs-red-soft);--status-stop-border:var(--fs-red);
+  --status-neutral-fg:var(--fs-grey);--status-neutral-bg:var(--fs-grey-soft);--status-neutral-border:#CFCCC1;
+
+  /* Chart */
+  --chart-bar:var(--fs-ink-2);
+  --chart-track:var(--fs-sand);
+}
+
+/* Dark theme — Fund and Results pages. Same meanings, 20% tints. */
+[data-theme="dark"]{
+  --bg-page:#1F1E1D;
+  --bg-surface:#262624;
+  --bg-subtle:#302F2C;
+  --bg-hover:#302F2C;
+  --bg-selected:#34332F;
+  --bg-code:#302F2C;
+  --bg-highlight:#4A3B1E;
+  --bg-highlight-soft:#3A3121;
+  --border:#3A3935;
+  --border-strong:#4A4944;
+  --text:#FAF9F5;
+  --text-2:#B0AEA5;
+  --text-3:#8F8D85;
+  --text-inverse:#141413;
+  --brand:#D97757;
+  --focus-ring:#D97757;
+  --nav-active-bar:#D97757;
+  --btn-primary-bg:#FAF9F5;
+  --btn-primary-fg:#141413;
+  --btn-primary-bg-hover:#E8E6DC;
+  --btn-secondary-bg:#262624;
+  --btn-secondary-fg:#FAF9F5;
+  --btn-secondary-border:#3A3935;
+  --status-good-fg:#8CC7A0;--status-good-bg:rgba(47,107,69,.2);--status-good-border:#6FAE85;
+  --status-person-fg:#E3B866;--status-person-bg:rgba(138,90,11,.2);--status-person-border:#C99A45;
+  --status-stop-fg:#EC9A8C;--status-stop-bg:rgba(166,58,43,.2);--status-stop-border:#D27A6B;
+  --status-neutral-fg:#B0AEA5;--status-neutral-bg:rgba(176,174,165,.12);--status-neutral-border:#55534D;
+  --chart-bar:#B0AEA5;
+  --chart-track:#302F2C;
+}
+:root{
+  --font-serif:'Source Serif 4','Newsreader',Georgia,'Times New Roman',serif;
+  --font-sans:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,monospace;
+
+  /* Scale */
+  --text-key:36px;        /* key number or decision on a page */
+  --text-page-title:30px; /* serif */
+  --text-lead:19px;       /* decision reason, large text */
+  --text-section:20px;    /* serif */
+  --text-body:15px;
+  --text-small:13px;
+  --text-badge:11px;      /* AI / Rule badges, caps */
+
+  --leading-tight:1.2;
+  --leading-snug:1.35;
+  --leading-body:1.55;
+
+  --weight-regular:400;
+  --weight-medium:500;
+  --weight-semibold:600;
+
+  --tracking-caps:0.06em;
+  --tracking-title:-0.01em;
+
+  /* Semantic aliases */
+  --type-page-title:600 var(--text-page-title)/var(--leading-tight) var(--font-serif);
+  --type-section-title:600 var(--text-section)/var(--leading-snug) var(--font-serif);
+  --type-body:400 var(--text-body)/var(--leading-body) var(--font-sans);
+  --type-small:400 var(--text-small)/var(--leading-snug) var(--font-sans);
+  --type-key:600 var(--text-key)/1.1 var(--font-sans);
+  --type-lead:400 var(--text-lead)/1.5 var(--font-serif);
+  --type-badge:600 var(--text-badge)/1 var(--font-sans);
+  --type-mono:500 var(--text-small)/1.3 var(--font-mono);
+}
+:root{
+  /* 4px base spacing */
+  --space-0:0;
+  --space-1:4px;
+  --space-2:8px;
+  --space-3:12px;
+  --space-4:16px;
+  --space-5:20px;
+  --space-6:24px;
+  --space-8:32px;
+  --space-10:40px;
+  --space-12:48px;
+  --space-16:64px;
+
+  /* Radii — 8px maximum; pills only for status chips */
+  --radius-sm:4px;
+  --radius-md:6px;
+  --radius-lg:8px;
+  --radius-pill:999px;
+
+  /* Elevation — one faint card shadow, nothing heavier */
+  --shadow-none:none;
+  --shadow-card:0 1px 2px rgba(20,20,19,.05);
+
+  /* Layout */
+  --sidebar-w:240px;
+  --sidebar-w-collapsed:64px;
+  --content-max:1120px;
+  --panel-w:480px;
+  --row-h:48px;
+  --row-h-compact:40px;
+  --icon-size:16px;
+  --icon-stroke:1.5;
+  --focus-ring-width:2px;
+  --focus-ring-offset:2px;
+
+  /* Motion — quiet, fast, no bounce */
+  --ease-standard:cubic-bezier(.2,0,0,1); /* @kind other */
+  --dur-fast:120ms; /* @kind other */
+  --dur-base:180ms; /* @kind other */
+  --dur-panel:220ms; /* @kind other */
+}
+/* Minimal element defaults + interaction states inline styles can't express. */
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg-page);color:var(--text);font:var(--type-body);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+a{color:var(--text);text-decoration:underline;text-decoration-color:var(--border-strong);text-underline-offset:3px}
+a:hover{text-decoration-color:var(--text)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring);outline-offset:var(--focus-ring-offset)}
+.fs-num{font-variant-numeric:tabular-nums}
+.fs-mono{font-family:var(--font-mono);font-weight:500}
+.fs-row{cursor:pointer;transition:background var(--dur-fast) var(--ease-standard)}
+.fs-row:hover{background:var(--bg-hover)}
+.fs-row:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring);outline-offset:-2px}
+.fs-row[aria-selected="true"]{background:var(--bg-selected)}
+.fs-hoverable{transition:background var(--dur-fast) var(--ease-standard),border-color var(--dur-fast)}
+.fs-hoverable:hover{background:var(--bg-hover)}
+.fs-btn-primary:hover:not(:disabled){background:var(--btn-primary-bg-hover)!important}
+.fs-btn-secondary:hover:not(:disabled){background:var(--bg-hover)!important}
+.fs-btn-ghost:hover:not(:disabled){background:var(--bg-hover)!important}
+.fs-link-num{cursor:pointer;border-radius:3px;text-decoration:underline dotted var(--border-strong);text-underline-offset:3px;transition:background var(--dur-fast)}
+.fs-link-num:hover,.fs-link-num[data-hl="true"]{background:var(--bg-highlight-soft);text-decoration-color:var(--text-2)}
+.fs-link-num[data-active="true"]{background:var(--bg-highlight);text-decoration-color:var(--status-person-fg)}
+@keyframes fs-spin{to{transform:rotate(360deg)}}
+.fs-spin{animation:fs-spin 1s linear infinite}
+@keyframes fs-pulse{0%,100%{opacity:1}50%{opacity:.55}}
+.fs-skeleton{background:var(--bg-subtle);border-radius:var(--radius-sm);animation:fs-pulse 1.4s ease-in-out infinite}
+@keyframes fs-row-in{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+.fs-row-in{animation:fs-row-in var(--dur-base) var(--ease-standard)}
+@keyframes fs-panel-in{from{transform:translateX(16px);opacity:0}to{transform:none;opacity:1}}
+.fs-panel-in{animation:fs-panel-in var(--dur-panel) var(--ease-standard)}
+@media (prefers-reduced-motion:reduce){.fs-spin,.fs-skeleton,.fs-row-in,.fs-panel-in{animation:none}}
+html,body{height:100%}
