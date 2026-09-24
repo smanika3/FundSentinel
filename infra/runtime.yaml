@@ -1,0 +1,85 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: FundSentinel AgentCore Runtime (pipeline) and its least-privilege execution role. Deployed without CDK bootstrap because the hackathon account denies attaching AWS Admin policies, which CDK bootstrap requires.
+
+Parameters:
+  CodeKey:
+    Type: String
+    Description: S3 key of the packaged runtime zip in the FundSentinel bucket (artifacts/runtime/<hash>.zip)
+
+Resources:
+  RuntimeRole:
+    Type: AWS::IAM::Role
+    # IAM deletes are denied in the hackathon account, so never ask CloudFormation to delete this role.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      RoleName: fundsentinel-agentcore-runtime
+      Description: FundSentinel AgentCore Runtime execution role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: {Service: bedrock-agentcore.amazonaws.com}
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals: {aws:SourceAccount: !Ref AWS::AccountId}
+      Policies:
+        - PolicyName: fundsentinel-runtime
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: ApprovedModels
+                Effect: Allow
+                Action: [bedrock:InvokeModel, bedrock:InvokeModelWithResponseStream]
+                Resource:
+                  - !Sub arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/us.anthropic.claude-sonnet-5
+                  - !Sub arn:aws:bedrock:*:${AWS::AccountId}:inference-profile/us.anthropic.claude-opus-5
+                  - arn:aws:bedrock:*::foundation-model/anthropic.claude-sonnet-5
+                  - arn:aws:bedrock:*::foundation-model/anthropic.claude-opus-5
+                  - arn:aws:bedrock:*::foundation-model/amazon.titan-embed-text-v2:0
+              - Sid: FundSentinelBucket
+                Effect: Allow
+                Action: [s3:GetObject, s3:PutObject, s3:ListBucket]
+                Resource:
+                  - !Sub arn:aws:s3:::fundsentinel-${AWS::AccountId}-${AWS::Region}
+                  - !Sub arn:aws:s3:::fundsentinel-${AWS::AccountId}-${AWS::Region}/*
+              - Sid: RecordBookDataApi
+                Effect: Allow
+                Action: [rds-data:ExecuteStatement, rds-data:BatchExecuteStatement]
+                Resource: !Sub arn:aws:rds:${AWS::Region}:${AWS::AccountId}:cluster:fundsentinel-db
+              - Sid: RecordBookSecret
+                Effect: Allow
+                Action: secretsmanager:GetSecretValue
+                Resource: !Sub arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:rds!cluster-*
+              - Sid: RuntimeLogs
+                Effect: Allow
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:DescribeLogStreams, logs:PutLogEvents]
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/bedrock-agentcore/runtimes/*
+              - Sid: Telemetry
+                Effect: Allow
+                Action: [logs:DescribeLogGroups, xray:PutTraceSegments, xray:PutTelemetryRecords, cloudwatch:PutMetricData]
+                Resource: "*"
+
+  Runtime:
+    Type: AWS::BedrockAgentCore::Runtime
+    Properties:
+      AgentRuntimeName: FundSentinel_pipeline
+      Description: FundSentinel pipeline - Profiler mapping, 4 reviewers, Decision owner, S3 + Aurora writes
+      RoleArn: !GetAtt RuntimeRole.Arn
+      NetworkConfiguration: {NetworkMode: PUBLIC}
+      LifecycleConfiguration: {IdleRuntimeSessionTimeout: 900, MaxLifetime: 28800}
+      AgentRuntimeArtifact:
+        CodeConfiguration:
+          Runtime: PYTHON_3_12
+          EntryPoint: [opentelemetry-instrument, main.py]
+          Code:
+            S3:
+              Bucket: !Sub fundsentinel-${AWS::AccountId}-${AWS::Region}
+              Prefix: !Ref CodeKey
+      Tags: {project: fundsentinel}
+
+Outputs:
+  RuntimeArn:
+    Value: !GetAtt Runtime.AgentRuntimeArn
+  RuntimeRoleArn:
+    Value: !GetAtt RuntimeRole.Arn

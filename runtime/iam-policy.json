@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Sid": "FundSentinelBucket", "Effect": "Allow",
+     "Action": ["s3:GetObject", "s3:PutObject", "s3:ListBucket"],
+     "Resource": ["arn:aws:s3:::fundsentinel-736265634398-us-east-1", "arn:aws:s3:::fundsentinel-736265634398-us-east-1/*"]},
+    {"Sid": "RecordBookDataApi", "Effect": "Allow",
+     "Action": ["rds-data:ExecuteStatement", "rds-data:BatchExecuteStatement"],
+     "Resource": "arn:aws:rds:us-east-1:736265634398:cluster:fundsentinel-db"},
+    {"Sid": "RecordBookSecret", "Effect": "Allow",
+     "Action": ["secretsmanager:GetSecretValue"],
+     "Resource": "arn:aws:secretsmanager:us-east-1:736265634398:secret:rds!cluster-b6ba5a23-8c1b-4e30-890b-4ce7350f250e-*"},
+    {"Sid": "InferenceProfiles", "Effect": "Allow",
+     "Action": ["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
+     "Resource": ["arn:aws:bedrock:*:736265634398:inference-profile/us.anthropic.claude-*",
+                  "arn:aws:bedrock:*::foundation-model/anthropic.claude-*"]}
+  ]
+}

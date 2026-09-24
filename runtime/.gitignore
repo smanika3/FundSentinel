@@ -1,0 +1,4 @@
+# Copied in by scripts/sync_runtime.sh before packaging; the source of truth is ../fundsentinel and ../config
+fundsentinel/
+config/
+.venv/

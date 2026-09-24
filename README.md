@@ -48,6 +48,26 @@ uv run streamlit run app/dashboard.py
 
 Re-running the same file with the same mapping reuses the same run ID and updates rows in place, so there are no duplicates.
 
+## Deployed on AgentCore
+
+The whole pipeline runs as one AgentCore Runtime, `FundSentinel_pipeline`. Entry point: [runtime/main.py](runtime/main.py).
+It runs under its own least-privilege role (`fundsentinel-agentcore-runtime`): approved Claude models only, the FundSentinel
+bucket, the database Data API and its secret, and runtime logs. Nothing depends on a person's login once deployed.
+
+```bash
+./scripts/deploy_runtime.sh     # sync code+config, package with the AgentCore CLI, upload to S3, deploy infra/runtime.yaml
+uv run python scripts/invoke_runtime.py '{"source": "raw/india/comprehensive_mutual_funds_data.csv",
+  "context": "Data snapshot date 2023-04-26", "limit": 3}'
+```
+
+Payload fields: `source` (S3 key in the bucket, or `s3://...`), optional `mapping` (repo path; omit to use the Profiler),
+`context`, `limit`, `fund_ids`. Results land in S3 and the database exactly as in a local run.
+
+Why CloudFormation instead of `agentcore deploy`: `agentcore deploy` needs a CDK bootstrap, and bootstrap attaches the AWS
+`AdministratorAccess` policy to a role, which the hackathon account denies. `infra/runtime.yaml` creates the same
+resources (an execution role plus an `AWS::BedrockAgentCore::Runtime`) with scoped permissions. The AgentCore CLI is still
+used for packaging (`agentcore package`) and the project config lives in [agentcore/](agentcore/).
+
 ## Team
 
 Team Vitality: Debaleena Chakraborty · Saisrivathsan Manikandan · Shrey Bishnoi

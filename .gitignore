@@ -27,3 +27,10 @@ fundsentinel_system_architecture_v2.png
 
 # Local pipeline outputs (the durable copy goes to S3/RDS)
 runs/
+
+# AgentCore CDK node modules / build output
+agentcore/cdk/node_modules/
+agentcore/cdk/cdk.out/
+agentcore/pipeline.zip
+agentcore/pipeline/
+runtime/.venv/

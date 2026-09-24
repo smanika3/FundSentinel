@@ -49,7 +49,8 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 - [x] `config/policy.json` — mock rules (max fee 0.75%, etc.)
 - [x] Code tools: unit/date normalisation (`fundsentinel/normalise.py`), mapping validator + apply with provenance (`fundsentinel/mapping.py`), reference Yahoo mapping (`config/mappings/`)
 - [x] S3 + database writers (`fundsentinel/store.py`): run ID = fingerprint of file + mapping, all writes upserted, verified no duplicates on re-run
-- [ ] AgentCore project: `npx @aws/agentcore create` (Python, Direct Code Deploy, Strands, Bedrock, no memory)
+- [x] **Deployed on AgentCore Runtime** (`FundSentinel_pipeline`) via `scripts/deploy_runtime.sh` + `infra/runtime.yaml`; invoke with `scripts/invoke_runtime.py`. Verified: Yahoo (fixed mapping) and India (Profiler) runs in the cloud, same decisions as local.
+      `agentcore deploy` does NOT work here: CDK bootstrap attaches AdministratorAccess, which the account denies. Also `iam:Delete*` is denied for everyone, so IAM roles can never be removed; 4 empty `cdk-hnb659fds-*` roles are left over from the failed bootstrap attempt.
 - [x] First agent: **Finance reviewer** (`fundsentinel/agents/finance.py`, verified live: pass / fail / concern / cannot_assess) with tools + JSON verdict form — prove the pattern works
 - [x] Profiler agent (`fundsentinel/agents/profiler.py`): code profiles columns, agent proposes mapping with unit + confidence, code checks it, rejected fields go back for up to 3 rounds. Yahoo: 15/16 vs answer key on first try (the 16th was an equivalent constant). India (never seen): percent units, crore multiplier, 1-6 risk rescale, INR, refused to invent dates. Pipeline uses it when `--mapping` is omitted; `--context` carries uploader facts (e.g. snapshot date).
 - [x] Reviewer errors become `cannot_assess` instead of crashing; expired login stops the run with a clear message
