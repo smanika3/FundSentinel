@@ -284,7 +284,6 @@ Run with `uv run streamlit run app/dashboard.py`. Everything is read from the da
 | **Data dictionary** | The Metadata agent's description of every column, and the Transform agent's proposals with why each was accepted or rejected. |
 | **Column mapping** | How each column was mapped and whether the code check accepted it. |
 
-A redesign brief for Claude Design is in `docs/ui_design_prompt.md`.
 
 ---
 
@@ -328,7 +327,7 @@ uv run streamlit run app/dashboard.py
 
 ## 11. Every file in the repository
 
-**Top level:** `README.md` (overview for judges), `SETUP.md` (teammate setup), `plan.md` (live tracker), `FundSentinel Full Plan.md` (design doc), `CLAUDE.md` / `AGENTS.md` (rules for AI coding assistants: region, models, CodeCommit, no secrets), `pyproject.toml` / `uv.lock` (Python dependencies), `.gitignore`.
+**Top level:** `README.md` (overview for judges), `SETUP.md` (teammate setup), `pyproject.toml` / `uv.lock` (Python dependencies), `.gitignore`.
 
 **`fundsentinel/` — the pipeline**
 
@@ -361,7 +360,7 @@ uv run streamlit run app/dashboard.py
 
 **`data/`** — `SOURCES.md` (data sources and quirks), `test/` (test files and answer keys), `raw/` (not in git).
 
-**`docs/`** — this file and the UI design prompt.
+**`docs/`** — this file.
 
 ---
 

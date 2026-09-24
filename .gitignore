@@ -34,3 +34,10 @@ agentcore/cdk/cdk.out/
 agentcore/pipeline.zip
 agentcore/pipeline/
 runtime/.venv/
+
+# Kept locally, not part of the hackathon submission
+CLAUDE.md
+AGENTS.md
+plan.md
+FundSentinel Full Plan.md
+docs/ui_design_prompt.md

@@ -130,7 +130,7 @@ Then in each MCP config file it updated, find the `aws-mcp` entry and add:
 "env": { "AWS_MCP_PROXY_PROFILES": "fundsentinel" }
 ```
 
-(OpenCode uses `"environment"` instead of `"env"`.) Restart the tool. Project rules for AI tools are already in `CLAUDE.md` / `AGENTS.md` in the repo.
+(OpenCode uses `"environment"` instead of `"env"`.) Restart the tool.
 
 ## Where things are
 
@@ -141,8 +141,7 @@ Then in each MCP config file it updated, find the `aws-mcp` entry and add:
 | Database | Aurora Postgres `fundsentinel-db`, database `fundsentinel`, used through the RDS Data API. ARNs in [config/aws.json](config/aws.json). No password needed; your AWS login is enough. |
 | Model IDs | [config/models.json](config/models.json) |
 | Infra definition | [infra/phase0.yaml](infra/phase0.yaml) (CloudFormation stack `fundsentinel-phase0`). Don't create resources by clicking in the console; change this file. |
-| What we're building | `FundSentinel Full Plan.md` |
-| Who's doing what, what's next | [plan.md](plan.md) |
+| What we're building and how it works | [docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md) |
 
 ## Team rules
 
