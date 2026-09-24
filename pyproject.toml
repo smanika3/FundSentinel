@@ -8,4 +8,5 @@ dependencies = [
     "pandas>=3.0.6",
     "pydantic>=2.13.5",
     "strands-agents>=1.57.0",
+    "streamlit>=1.64.0",
 ]

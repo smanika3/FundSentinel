@@ -55,7 +55,7 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 - [x] Other reviewers: Analyst, Compliance (Opus), Suitability
 - [x] Simple orchestrator (`fundsentinel/pipeline.py`, reviewers in parallel) + Decision owner (Layer 1 rules in code, Layer 2 Opus)
       First run (8 funds, 156 s): all 5 decision types produced. Decision owner caught a **real Kaggle data error**: VFIAX row carries the name "BNY Mellon Technology Growth Fund Class A". Use in the demo; confirm with the SEC ticker file.
-- [ ] Results saved to S3 + RDS; basic Streamlit dashboard reading RDS
+- [x] Results saved to S3 + database; Streamlit dashboard (`app/dashboard.py`): decision counts, per-fund story with evidence + provenance, bottleneck, mapping checks
 - [ ] **Milestone:** one command, CSV → decisions, no manual fixes. Push to CodeCommit. **Demo this at the code review.**
 
 ## Phase 2 — High-scoring upgrades (Thu afternoon)
