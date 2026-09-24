@@ -48,7 +48,7 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 - [x] `config/schema.json` — canonical fields: fund_id, fund_name, ticker, category, benchmark, expense_ratio, risk_score, returns, as_of_date, source_ref
 - [x] `config/policy.json` — mock rules (max fee 0.75%, etc.)
 - [x] Code tools: unit/date normalisation (`fundsentinel/normalise.py`), mapping validator + apply with provenance (`fundsentinel/mapping.py`), reference Yahoo mapping (`config/mappings/`)
-- [ ] S3 + RDS writers with run IDs
+- [x] S3 + database writers (`fundsentinel/store.py`): run ID = fingerprint of file + mapping, all writes upserted, verified no duplicates on re-run
 - [ ] AgentCore project: `npx @aws/agentcore create` (Python, Direct Code Deploy, Strands, Bedrock, no memory)
 - [x] First agent: **Finance reviewer** (`fundsentinel/agents/finance.py`, verified live: pass / fail / concern / cannot_assess) with tools + JSON verdict form — prove the pattern works
 - [ ] Stage 1 agents: Profiler → Quality → Transform → Metadata (SelfHeal can start as a stub)
