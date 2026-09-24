@@ -1,0 +1,73 @@
+[
+  {
+    "fund_id": "PGOEX",
+    "field": "expense_ratio",
+    "old": 0.006,
+    "new": 0.011,
+    "materiality": "material",
+    "reopen": [
+      "finance",
+      "decision_owner"
+    ]
+  },
+  {
+    "fund_id": "PGOEX",
+    "field": "benchmark",
+    "old": "Russell 1000 Growth TR USD",
+    "new": "S&P 500 TR USD",
+    "materiality": "material",
+    "reopen": [
+      "analyst",
+      "suitability",
+      "decision_owner"
+    ]
+  },
+  {
+    "fund_id": "TWUAX",
+    "field": "risk_rating",
+    "old": 4,
+    "new": 5,
+    "materiality": "material",
+    "reopen": [
+      "suitability",
+      "decision_owner"
+    ]
+  },
+  {
+    "fund_id": "GCVRX",
+    "field": "total_net_assets",
+    "old": 409138784.0,
+    "new": 40000000.0,
+    "materiality": "material",
+    "reopen": [
+      "compliance",
+      "decision_owner"
+    ]
+  },
+  {
+    "fund_id": "IEOHX",
+    "field": "fund_long_name",
+    "old": "Eaton Vance Tax-Managed Equity Asset Allocation Fund Class C",
+    "new": "Eaton Vance Tax-Managed Equity Asset Allocation Fund Class C (Renamed)",
+    "materiality": "ambiguous",
+    "reopen": [
+      "compliance?"
+    ]
+  },
+  {
+    "fund_id": "*",
+    "field": "as_of_date",
+    "old": "2021-10-29",
+    "new": "2021-11-30",
+    "materiality": "routine",
+    "reopen": []
+  },
+  {
+    "fund_id": "*",
+    "field": "return_1y",
+    "old": "various",
+    "new": "small drift (<1 point)",
+    "materiality": "routine",
+    "reopen": []
+  }
+]

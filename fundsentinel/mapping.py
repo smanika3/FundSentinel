@@ -61,7 +61,15 @@ def _convert(spec: dict, ftype: dict, raw):
     if t == "rate":
         return normalise.parse_rate(raw, spec.get("unit", "auto"), max_plausible=ftype.get("max"))
     if t == "int":
-        v = normalise.parse_number(raw)
+        note = None
+        if "value_map" in spec and raw is not None and str(raw).strip() != "" and raw == raw:
+            key = str(raw).strip()
+            lookup = {str(k).strip().lower(): v for k, v in spec["value_map"].items()}
+            if key.lower() not in lookup:
+                raise ValueError(f"{raw!r} not in value_map")
+            v, note = float(lookup[key.lower()]), f"{raw!r} -> {lookup[key.lower()]:g} via value_map"
+        else:
+            v = normalise.parse_number(raw)
         if v is None:
             return None, None
         if "scale" in spec:
@@ -69,15 +77,16 @@ def _convert(spec: dict, ftype: dict, raw):
             if (lo, hi) != (ftype.get("min"), ftype.get("max")):
                 new = normalise.rescale(v, lo, hi, ftype["min"], ftype["max"])
                 return new, f"{raw} on {lo}-{hi} scale -> {new} on {ftype['min']}-{ftype['max']}"
-        return int(round(v)), None
+        return int(round(v)), note
     if t == "number":
         v = normalise.parse_number(raw)
         mult = spec.get("multiplier")
         if v is not None and mult:
             return v * mult, f"{raw} x {mult:g}"
-        return v, None
+        text_input = isinstance(raw, str) and raw.strip() != "" and v is not None
+        return v, (f"{raw} -> {v:g}" if text_input and str(raw).strip() != f"{v:g}" else None)
     if t == "date":
-        return normalise.parse_date(raw), None
+        return normalise.parse_date(raw, spec.get("date_format")), None
     if raw is None or (isinstance(raw, float) and raw != raw) or str(raw).strip() == "":
         return None, None
     return str(raw).strip(), None

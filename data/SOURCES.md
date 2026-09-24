@@ -28,3 +28,15 @@ Useful `num.tsv` tags: `ExpensesOverAssets` (total expense ratio), `ManagementFe
 - **India:** `expense_ratio` is in percent; fund size is in crore (`fund_size_cr`).
 
 Check each Kaggle dataset's licence on its page before submission and credit all sources in the README.
+
+## Test files (`data/test/`, committed)
+
+Built by `scripts/make_test_files.py` from real Yahoo rows with a fixed seed. Each has an answer key so agents are scored, not eyeballed:
+`funds_alt_columns.csv` + `alt_columns_answer_key.json` (Profiler), `funds_broken.csv` + `broken_answer_key.json` (Quality / SelfHeal, 13 planted issues),
+`funds_v1.csv` / `funds_v2.csv` + `changes_answer_key.json` (Radar-lite). The `benchmark` column in v1/v2 is mock, assigned by category.
+
+## Known problem in the Yahoo data
+
+Many rows have a fund name that belongs to a different fund: the same share-class name appears under several tickers
+(e.g. "DWS RREEF Real Assets Fund - Class A" on 4 tickers) and VFIAX carries "BNY Mellon Technology Growth Fund Class A".
+Treat `fund_long_name` as unreliable; identity should be confirmed against the SEC ticker file.

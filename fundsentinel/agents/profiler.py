@@ -26,7 +26,12 @@ class FieldMap(BaseModel):
     unit: Literal["fraction", "percent", "bps"] | None = Field(
         default=None, description="For rate fields: how the SOURCE stores it. fraction: 0.0075 = 0.75%. percent: 0.75 = 0.75%.")
     scale: list[float] | None = Field(default=None, description="For risk_score: the source scale [min, max], e.g. [1, 7]")
-    multiplier: float | None = Field(default=None, description="For money fields in scaled units, e.g. 1e7 for crore, 1e6 for millions")
+    multiplier: float | None = Field(default=None, description="For money fields in scaled units, e.g. 1e7 for crore, 1e6 for millions. "
+                                                             "Not needed for text like '$1.2B' (code reads K/M/B suffixes)")
+    value_map: dict[str, float] | None = Field(default=None, description="For risk_score given as words: every distinct word -> number, "
+                                                                        "e.g. {'Low': 1, 'Average': 3, 'High': 5}")
+    date_format: str | None = Field(default=None, description="strptime format for date columns, e.g. '%m/%d/%Y'. "
+                                                              "Required when day/month order is ambiguous")
     confidence: float = Field(ge=0, le=1)
     rationale: str = Field(description="One short sentence: why this column, and why this unit")
 
@@ -45,7 +50,10 @@ Rules:
 - Units matter more than names. Decide from the value ranges: an expense ratio column with median 0.9 is percent; with median 0.009 it is a fraction.
   Returns: median 12 means percent, median 0.12 means fraction.
 - risk_score must be 1-5. If the source uses another scale, give it in `scale` so code can rescale.
-- Money in crore, lakh, millions or thousands needs a `multiplier`.
+- Money in crore, lakh, millions or thousands needs a `multiplier`. Text like "$1.2B" or "350M" is read by code; no multiplier.
+- Rate columns may mix formats ("75 bps", "0.75%"); code reads explicit suffixes per value. Set `unit` for bare numbers.
+- risk_score given as words needs a `value_map` covering every distinct word (e.g. {"Low": 1, ..., "High": 5}).
+- Dates like 03/10/2021 are ambiguous: look at samples for a value above 12 to tell day from month, and set `date_format`.
 - fund_id must identify a fund: prefer a ticker or code column; if there is none, use the name column.
 - Use `constant` only when the value is certain from context (e.g. currency INR for a file of Indian funds). Never invent dates or numbers.
 - confidence reflects how sure you are of BOTH the column and the unit.

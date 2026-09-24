@@ -1,0 +1,56 @@
+{
+  "source": "test/funds_alt_columns.csv",
+  "author": "answer key",
+  "fields": {
+    "fund_id": {
+      "column": "Ticker Symbol"
+    },
+    "ticker": {
+      "column": "Ticker Symbol"
+    },
+    "fund_name": {
+      "column": "Fund Title"
+    },
+    "fund_family": {
+      "column": "Sponsor"
+    },
+    "category": {
+      "column": "Peer Group"
+    },
+    "expense_ratio": {
+      "column": "Annual Expense"
+    },
+    "category_expense_ratio": {
+      "column": "Peer Avg Expense %",
+      "unit": "percent"
+    },
+    "risk_score": {
+      "column": "Risk Band"
+    },
+    "return_1y": {
+      "column": "1Y %",
+      "unit": "percent"
+    },
+    "return_3y": {
+      "column": "3Y Ann %",
+      "unit": "percent"
+    },
+    "return_5y": {
+      "column": "5Y Ann %",
+      "unit": "percent"
+    },
+    "category_return_5y": {
+      "column": "Peer 5Y %",
+      "unit": "percent"
+    },
+    "total_net_assets": {
+      "column": "AUM"
+    },
+    "inception_date": {
+      "column": "Launch"
+    },
+    "as_of_date": {
+      "column": "Data Date"
+    }
+  }
+}

@@ -1,0 +1,117 @@
+[
+  {
+    "row": 2,
+    "fund_id": "MFWLX",
+    "column": "fund_category",
+    "original": "World Allocation",
+    "planted": "World Alloction",
+    "kind": "typo",
+    "expected_handling": "fix: nearest known category (high confidence)"
+  },
+  {
+    "row": 3,
+    "fund_id": "BBSOX",
+    "column": "fund_category",
+    "original": "Ultrashort Bond",
+    "planted": "Equty",
+    "kind": "typo",
+    "expected_handling": "fix: 'Equity' or flag (no exact category)"
+  },
+  {
+    "row": 4,
+    "fund_id": "LNYFX",
+    "column": "expense_ratio",
+    "original": "0.68%",
+    "planted": "45%",
+    "kind": "impossible_value",
+    "expected_handling": "flag or quarantine: fee far above any real fund"
+  },
+  {
+    "row": 5,
+    "fund_id": "RPGIX",
+    "column": "expense_ratio",
+    "original": "1.05%",
+    "planted": null,
+    "kind": "missing_required",
+    "expected_handling": "quarantine: 'Cannot check: fee missing'"
+  },
+  {
+    "row": 6,
+    "fund_id": "FFFPX",
+    "column": "expense_ratio",
+    "original": "0.75%",
+    "planted": "7.5",
+    "kind": "ambiguous_unit",
+    "expected_handling": "flag: bare 7.5 most likely 0.75% typed without %"
+  },
+  {
+    "row": 7,
+    "fund_id": "REMSX",
+    "column": "expense_ratio",
+    "original": "1.22%",
+    "planted": "75 bps",
+    "kind": "unit_variant",
+    "expected_handling": "fix: 75 bps -> 0.0075"
+  },
+  {
+    "row": 8,
+    "fund_id": "FIFFX",
+    "column": "risk_rating",
+    "original": "5",
+    "planted": "9",
+    "kind": "out_of_range",
+    "expected_handling": "flag: risk rating outside 1-5"
+  },
+  {
+    "row": 9,
+    "fund_id": "MBAIX",
+    "column": "inception_date",
+    "original": "1989-05-01",
+    "planted": "2021-13-45",
+    "kind": "bad_date",
+    "expected_handling": "flag: unparseable date"
+  },
+  {
+    "row": 10,
+    "fund_id": "AEDHX",
+    "column": "total_net_assets",
+    "original": "685194752.0",
+    "planted": "-250000000",
+    "kind": "impossible_value",
+    "expected_handling": "flag: negative fund size"
+  },
+  {
+    "row": 11,
+    "fund_id": "FMGGX",
+    "column": "return_5y_pct",
+    "original": "17.08",
+    "planted": "90.0",
+    "kind": "implausible_value",
+    "expected_handling": "flag: 90% annualised 5-year return"
+  },
+  {
+    "row": 12,
+    "fund_id": "ONAIX",
+    "column": "fund_symbol",
+    "original": "ONAIX",
+    "planted": null,
+    "kind": "missing_required",
+    "expected_handling": "quarantine: no fund identifier"
+  },
+  {
+    "row": 13,
+    "fund_id": "VIPIX",
+    "column": "inception_date",
+    "original": "2003-12-12",
+    "planted": "2031-01-15",
+    "kind": "future_date",
+    "expected_handling": "flag: launch date after as-of date"
+  },
+  {
+    "row": 32,
+    "fund_id": "CDVZX",
+    "column": "*",
+    "kind": "duplicate_row",
+    "expected_handling": "drop duplicate, keep first"
+  }
+]

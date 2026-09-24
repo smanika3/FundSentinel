@@ -1,0 +1,96 @@
+{
+  "source": "test/funds_alt_columns.csv",
+  "author": "profiler-agent",
+  "fields": {
+    "fund_id": {
+      "column": "Ticker Symbol",
+      "confidence": 0.95,
+      "rationale": "Ticker symbol uniquely identifies each fund row."
+    },
+    "ticker": {
+      "column": "Ticker Symbol",
+      "confidence": 0.95,
+      "rationale": "Same column serves as exchange ticker."
+    },
+    "fund_name": {
+      "column": "Fund Title",
+      "confidence": 0.95,
+      "rationale": "Full descriptive fund name."
+    },
+    "fund_family": {
+      "column": "Sponsor",
+      "confidence": 0.9,
+      "rationale": "Sponsor names (DWS, Invesco, etc.) are the asset manager/AMC."
+    },
+    "category": {
+      "column": "Peer Group",
+      "confidence": 0.9,
+      "rationale": "Peer Group values match Morningstar-style category names (Large Value, Mid-Cap Value, etc.)."
+    },
+    "expense_ratio": {
+      "column": "Annual Expense",
+      "confidence": 0.85,
+      "rationale": "Mixed bps/percent text; code parses explicit suffixes per value into a fraction."
+    },
+    "category_expense_ratio": {
+      "column": "Peer Avg Expense %",
+      "unit": "percent",
+      "confidence": 0.85,
+      "rationale": "Numeric range 0.45-1.79 indicates percent, not fraction; convert to fraction."
+    },
+    "risk_score": {
+      "column": "Risk Band",
+      "value_map": {
+        "Low": 1.0,
+        "Below Average": 2.0,
+        "Average": 3.0,
+        "Above Average": 4.0,
+        "High": 5.0
+      },
+      "confidence": 0.85,
+      "rationale": "Five-level word scale maps directly onto 1-5 risk scale."
+    },
+    "return_3y": {
+      "column": "3Y Ann %",
+      "unit": "percent",
+      "confidence": 0.8,
+      "rationale": "Median 8.13 indicates annualized percent return."
+    },
+    "return_5y": {
+      "column": "5Y Ann %",
+      "unit": "percent",
+      "confidence": 0.8,
+      "rationale": "Median 6.01 indicates annualized percent return."
+    },
+    "category_return_5y": {
+      "column": "Peer 5Y %",
+      "unit": "percent",
+      "confidence": 0.8,
+      "rationale": "Median 8.17 indicates category average percent return."
+    },
+    "total_net_assets": {
+      "column": "AUM",
+      "confidence": 0.9,
+      "rationale": "Text like '$2.98B' parsed directly by code; no multiplier needed."
+    },
+    "inception_date": {
+      "column": "Launch",
+      "date_format": "%m/%d/%Y",
+      "confidence": 0.85,
+      "rationale": "Sample '07/30/2007' has day=30>12, so format is month/day/year."
+    },
+    "as_of_date": {
+      "column": "Data Date",
+      "date_format": "%b %d, %Y",
+      "confidence": 0.85,
+      "rationale": "Format like 'Nov 24, 2021' matches month-abbrev day, year pattern."
+    },
+    "return_1y": {
+      "column": "1Y %",
+      "unit": "percent",
+      "confidence": 0.8,
+      "rationale": "Median 21.13 indicates percent values, convert to fraction return."
+    }
+  },
+  "not_mapped": []
+}

@@ -41,7 +41,7 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 - [x] Datasets in `s3://…/raw/`: Yahoo US, India, TEFAS (Turkey), SEC ticker file. Details + quirks in [data/SOURCES.md](data/SOURCES.md)
 - [ ] Morningstar Europe: needs a Kaggle login (403 anonymously). Download manually or add a Kaggle API token
 - [ ] Later: SEC Risk/Return (two quarters, for Radar-lite), SDV synthetic funds for the scale test
-- [ ] Make test files: `funds_alt_columns.csv` (renamed columns), `funds_broken.csv`, `funds_v1.csv` + `funds_v2.csv` (Radar-lite: fee 0.60→1.10%, benchmark change, date change)
+- [x] Test files via `scripts/make_test_files.py` (deterministic, from real Yahoo rows) in `data/test/`, each with an answer key: `funds_alt_columns.csv` (renamed columns, '75 bps'/'0.75%', risk words, '$1.2B', MM/DD/YYYY), `funds_broken.csv` (13 planted issues), `funds_v1/v2.csv` (fee 0.60→1.10%, benchmark change, risk 3→5, fund shrinks below $50M, ambiguous rename, routine date + return drift)
 
 ## Phase 1 — Basic pipeline end to end (today → Thu morning) ⭐ most important
 
@@ -53,7 +53,9 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 - [x] First agent: **Finance reviewer** (`fundsentinel/agents/finance.py`, verified live: pass / fail / concern / cannot_assess) with tools + JSON verdict form — prove the pattern works
 - [x] Profiler agent (`fundsentinel/agents/profiler.py`): code profiles columns, agent proposes mapping with unit + confidence, code checks it, rejected fields go back for up to 3 rounds. Yahoo: 15/16 vs answer key on first try (the 16th was an equivalent constant). India (never seen): percent units, crore multiplier, 1-6 risk rescale, INR, refused to invent dates. Pipeline uses it when `--mapping` is omitted; `--context` carries uploader facts (e.g. snapshot date).
 - [x] Reviewer errors become `cannot_assess` instead of crashing; expired login stops the run with a clear message
+- [x] Profiler on `funds_alt_columns.csv`: 15/15 vs answer key; **self-correction loop fired** (round 1 typo'd a column name, code rejected it, round 2 fixed it)
 - [ ] Stage 1 agents: Quality → Transform → Metadata (SelfHeal can start as a stub)
+      Quality must catch: Yahoo has **name/ticker mix-ups** in many rows (same Class-A name under several tickers, e.g. 'DWS RREEF Real Assets Fund - Class A' on 4 tickers; VFIAX named as a BNY Mellon fund). Cross-check with the SEC ticker file.
 - [x] India end-to-end through the Profiler (no code changes): 13 fields mapped in 1 round. Fund-size rule now in USD via mock FX (`config/fx.json`); found because a ₹10 crore fund was passing a $50M minimum.
 - [x] Brief Bedrock outages retried twice; partial re-runs keep the run's totals correct
 - [x] Other reviewers: Analyst, Compliance (Opus), Suitability

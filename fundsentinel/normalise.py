@@ -45,13 +45,26 @@ def _parse_rate(raw, unit: str = "auto", max_plausible: float | None = None):
     return num, None
 
 
+_SUFFIX = {"k": 1e3, "m": 1e6, "mn": 1e6, "b": 1e9, "bn": 1e9, "t": 1e12}
+
+
 def parse_number(raw):
+    """Plain numbers plus money text: '$1.2B' -> 1.2e9, '350.4M' -> 3.504e8, '12,500' -> 12500."""
     if raw is None or (isinstance(raw, float) and raw != raw):
         return None
-    text = str(raw).strip().replace(",", "")
+    if isinstance(raw, (int, float)):
+        return float(raw)
+    text = str(raw).strip().replace(",", "").replace(" ", "")
     if text.lower() in ("", "nan", "none", "null", "-", "n/a", "na"):
         return None
-    return float(text)
+    text = text.lstrip("$€£₹¥")
+    m = re.fullmatch(rf"({_NUM})([a-zA-Z]{{1,2}})?", text)
+    if not m:
+        raise ValueError(f"not a number: {raw!r}")
+    num, suffix = float(m.group(1)), (m.group(2) or "").lower()
+    if suffix and suffix not in _SUFFIX:
+        raise ValueError(f"unknown number suffix in {raw!r}")
+    return num * _SUFFIX.get(suffix, 1)
 
 
 def parse_int(raw):
@@ -67,8 +80,9 @@ def rescale(value: float, lo: float, hi: float, new_lo: int = 1, new_hi: int = 5
 _DATE_FORMATS = ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d.%m.%Y", "%Y/%m/%d", "%d-%m-%Y", "%b %d, %Y", "%d %b %Y")
 
 
-def parse_date(raw) -> str | None:
-    """Return ISO date string or None. Raises ValueError for unparseable non-empty input."""
+def parse_date(raw, fmt: str | None = None) -> str | None:
+    """Return ISO date string or None. Raises ValueError for unparseable non-empty input.
+    fmt: explicit strptime format; needed for ambiguous dates like 03/10/2021."""
     if raw is None or (isinstance(raw, float) and raw != raw):
         return None
     if isinstance(raw, (date, datetime)):
@@ -77,9 +91,9 @@ def parse_date(raw) -> str | None:
     if text.lower() in ("", "nan", "none", "null", "-", "n/a"):
         return None
     text = text.split("T")[0].split(" ")[0] if re.match(r"\d{4}-\d{2}-\d{2}[T ]", text) else text
-    for fmt in _DATE_FORMATS:
+    for f in ([fmt] if fmt else _DATE_FORMATS):
         try:
-            return datetime.strptime(text, fmt).strftime("%Y-%m-%d")
+            return datetime.strptime(text, f).strftime("%Y-%m-%d")
         except ValueError:
             continue
     raise ValueError(f"not a date: {raw!r}")
