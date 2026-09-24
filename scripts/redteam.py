@@ -92,6 +92,11 @@ def score(run_dir: str):
     key = json.loads((OUT / "redteam_answer_key.json").read_text())
     results = {r["fund_id"]: r for r in json.loads((Path(run_dir) / "results.json").read_text())}
     summary = json.loads((Path(run_dir) / "summary.json").read_text())
+    expected_source = "test/funds_redteam.csv"
+    planted = {k["fund_id"] for k in key}
+    if summary.get("source") != expected_source or len(planted & set(results)) < len(planted) // 2:
+        raise SystemExit(f"{run_dir} is not a run of the current {expected_source} (the answer key's funds are "
+                         f"missing from it). Re-run the pipeline on the current file, then score that run.")
     dropped = {i["fund_id"] for i in summary.get("quality_issues", []) if i["action"] == "drop"}
     caught, lines = 0, []
     for k in key:
