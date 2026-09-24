@@ -82,6 +82,19 @@ with tab_fund:
     for c in _json(d.conditions):
         st.markdown(f"- Condition: {c}")
 
+    trail = q("""SELECT seq, actor, event, reviewer, detail FROM review_events
+                 WHERE run_id = :r AND fund_id = :f ORDER BY seq""", r=run_id, f=fund_id)
+    if not trail.empty:
+        sends = int((trail.event == "sent_back").sum())
+        with st.expander(f"How this fund was routed ({len(trail)} steps, {sends} send-back(s))", expanded=sends > 0):
+            icons = {"called": "➡️", "verdict": "📝", "sent_back": "↩️", "skipped": "⏭️", "unverified": "⚠️",
+                     "report": "🧭", "decided": "✅", "error": "❗"}
+            for _, e in trail.iterrows():
+                who = e.actor.replace("_", " ").title()
+                target = f" → **{e.reviewer}**" if e.reviewer and e.reviewer != e.actor else ""
+                st.markdown(f"{icons.get(e.event, '•')} **{who}** {e.event.replace('_', ' ')}{target}"
+                            + (f": {e.detail[:400]}" if e.detail else ""))
+
     st.markdown("#### Reviewers")
     for _, v in verdicts[verdicts.fund_id == fund_id].sort_values("reviewer").iterrows():
         with st.expander(f"{v.reviewer.title()}: {VERDICT_ICON.get(v.verdict, v.verdict)}  (confidence {v.confidence:.2f})",
