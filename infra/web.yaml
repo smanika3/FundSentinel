@@ -51,8 +51,11 @@ Resources:
                 Action: [codecommit:GitPull, codecommit:GetRepository, codecommit:GetBranch, codecommit:GetCommit]
                 Resource: !Sub arn:aws:codecommit:${AWS::Region}:${AWS::AccountId}:fundsentinel
               - Effect: Allow
-                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents, logs:DescribeLogGroups]
+                Action: [logs:CreateLogGroup, logs:CreateLogStream, logs:PutLogEvents]
                 Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/amplify/*
+              - Effect: Allow
+                Action: logs:DescribeLogGroups
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
       Tags: [{ Key: project, Value: fundsentinel }]
 
   # Assumed by the running Next.js server: read the record book, list/upload files, start runs.
