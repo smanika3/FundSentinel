@@ -112,6 +112,10 @@ def load_csv(source: str | Path, **kwargs) -> pd.DataFrame:
     p = Path(source)
     with open(p, "rb") as f:
         sample = f.read(16384)
+    if len(sample) == 16384 and b"\n" in sample:
+        # Cut back to the last full line so a multi-byte character (e.g. 'ş') split by the 16 KB
+        # boundary doesn't make a valid UTF-8 file look like Latin-1.
+        sample = sample[: sample.rfind(b"\n") + 1]
 
     encoding = "utf-8"
     text = ""
