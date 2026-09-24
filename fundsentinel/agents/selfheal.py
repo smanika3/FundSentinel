@@ -13,6 +13,7 @@ from strands.models import BedrockModel
 
 from .. import settings
 from ..quality import AMBIGUOUS_KINDS, Issue
+from .common import PLAIN_WRITING
 
 
 class HealDecision(BaseModel):
@@ -39,7 +40,7 @@ Guidance:
 - A 45% fee or a risk score of 9 has no safe correction: quarantine or flag, never invent a value.
 - Implausible returns (e.g. 90% a year for 5 years) are suspect: flag.
 - Negative fund size: flag (sign error or bad data), never guess the size.
-Never stop the pipeline. Keep reasons short and concrete."""
+Never stop the pipeline. Keep reasons short and concrete.""" + PLAIN_WRITING
 
 
 def build() -> Agent:

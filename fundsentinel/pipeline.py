@@ -128,7 +128,7 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
                 continue
             iss = quality.Issue(f"A{len(issues) + 1:04d}", rec.fund_id, all_records.index(rec) + 2, f.field,
                                 "ai_inconsistency", f.finding, action="flag", decided_by="quality",
-                                confidence=0.8 if f.severity == "high" else 0.6, reason="Found by the Quality agent.")
+                                confidence=0.8 if f.severity == "high" else 0.6, reason="Found by the Quality inspector.")
             issues.append(iss)
             quality.apply(all_records, [iss])
         qreport = qreport.model_dump()
@@ -141,7 +141,7 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
           f"{sum(r.status == 'quarantined' for r in scope)} quarantined, {sum(r.status == 'flagged' for r in scope)} flagged")
 
     if progress:
-        progress.step(3, f"{len(healed)} problems judged by SelfHeal")
+        progress.step(3, f"{len(healed)} problems judged by the data repairer")
     # ---- Stage 1 continued: Transform -> Metadata ----
     transform_info, dictionary = stage1_transform_and_metadata(df, mapping, kept, source_name, context, stats, qreport)
 

@@ -10,6 +10,7 @@ from strands.models import BedrockModel
 
 from .. import settings
 from ..mapping import Record
+from .common import PLAIN_WRITING
 
 
 class Finding(BaseModel):
@@ -32,7 +33,7 @@ You receive (1) statistics from deterministic code checks over the whole file an
 Write a short, honest data-quality report. Then look at the table yourself for inconsistencies code cannot catch:
 a fund name that contradicts its category (e.g. a bond fund in an equity category, a target-date fund in a sector category),
 a family that does not match the name, or values that are individually valid but make no sense together.
-Only report extra findings you are genuinely confident about; do not repeat problems the code already reported."""
+Only report extra findings you are genuinely confident about; do not repeat problems the code already reported.""" + PLAIN_WRITING
 
 
 def build() -> Agent:

@@ -8,6 +8,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 from .. import settings
+from .common import PLAIN_WRITING
 
 Reviewer = Literal["analyst", "compliance", "finance", "suitability"]
 
@@ -38,7 +39,7 @@ For every detected change decide:
   Ambiguous changes should reopen the reviewer best placed to judge them, and say what they should check.
 Then, per fund, choose which reviewers to reopen. The routing map says who normally checks each field; follow it unless you
 have a reason, and explain. Reopen as few reviewers as correctness allows: re-reviewing everything defeats the purpose.
-Changes flagged `crosses_policy_threshold` are always material."""
+Changes flagged `crosses_policy_threshold` are always material.""" + PLAIN_WRITING
 
 
 def build() -> Agent:

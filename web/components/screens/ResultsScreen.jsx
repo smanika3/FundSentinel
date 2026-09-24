@@ -4,6 +4,7 @@ import {PageHeader, SectionTitle, NumberTile, TileRow, DataTable, Mono, OutcomeC
 
 const OUT_LABEL = { approved: 'Approved', conditions: 'Approved with conditions', rejected: 'Rejected', person: 'Needs a person', quarantined: "Couldn't judge" };
 const CHANGE_TONE = { routine: 'neutral', material: 'stop', ambiguous: 'person' };
+const CHANGE_LABEL = { routine: 'Routine', material: 'Matters', ambiguous: 'Unclear' };
 const TRICK_RESULT = { caught: { tone: 'good', label: 'Caught' }, read: { tone: 'good', label: 'Read correctly' }, missed: { tone: 'stop', label: 'Missed' }, other: { tone: 'stop', label: 'Missed: rejected for another reason' } };
 
 function counts(funds) {
@@ -75,7 +76,7 @@ function StuckDetails({ run }) {
           reading={top.value ? 'Most problems come from ' + top.label + ': ' + top.value + ' of ' + run.funds_.length + ' funds failed or couldn’t be assessed.' : 'No reviewer failed or was unable to assess any fund.'} />
       </div>
       <div style={{ display: 'grid', alignContent: 'start', gap: 14 }}>
-        <div style={{ font: '600 var(--text-body)/1.3 var(--font-sans)' }}>Send-backs</div>
+        <div style={{ font: '600 var(--text-body)/1.3 var(--font-sans)' }}>Sent back for more work</div>
         {[['Supervisor', run.sendbacks.supervisor, 'ai', 'Sent a reviewer back because facts conflicted'], ['Evidence checker', run.sendbacks.evidence, 'rule', 'Rejected a verdict whose numbers weren’t in the data']].map(([who, n, k, d]) => (
           <div key={who} style={{ display: 'grid', gridTemplateColumns: '44px 1fr', gap: 10 }}>
             <span style={{ font: '600 28px/1 var(--font-sans)', fontVariantNumeric: 'tabular-nums' }}>{n}</span>
@@ -112,7 +113,7 @@ function UpdateSection({ run, go, openSheet }) {
             columns={[
               { key: 't', label: 'Fund', width: 80, render: (c) => <Mono>{c.ticker}</Mono> },
               { key: 'f', label: 'Change', render: (c) => <span>{c.field}: <span style={{ color: 'var(--text-2)', textDecoration: 'line-through' }}>{c.from}</span> → {c.to}</span> },
-              { key: 'type', label: 'Type', width: 120, render: (c) => <StatusChip tone={CHANGE_TONE[c.type]} size="sm" label={c.type[0].toUpperCase() + c.type.slice(1)} /> },
+              { key: 'type', label: 'Type', width: 120, render: (c) => <StatusChip tone={CHANGE_TONE[c.type]} size="sm" label={CHANGE_LABEL[c.type] || c.type} /> },
               { key: 'j', label: 'Judged by', width: 230, small: true, render: (c) => <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><KindBadge kind={c.kind} />{c.judged.replace(/^(AI|Rule)( ·|:)? ?/, '') || ''}</span> },
               { key: 'r', label: 'Reviewers', small: true, render: (c) => <span>{c.type === 'routine' ? 'None reopened for this change' : c.reopened.length ? 'Reopened ' + c.reopened.join(', ') : 'None reopened'}</span> },
             ]} />
@@ -193,11 +194,11 @@ function ResultsSheet({ sheet, onClose }) {
     <Sheet title={c.field + ' changed'} subtitle={c.ticker + ' · compared with ' + sheet.compareWith} onClose={onClose}>
       <div style={{ font: 'var(--type-lead)' }}><span style={{ color: 'var(--text-2)', textDecoration: 'line-through' }}>{c.from}</span> → {c.to}</div>
       <FactList facts={[
-        { label: 'Type', value: <StatusChip tone={CHANGE_TONE[c.type]} size="sm" label={c.type[0].toUpperCase() + c.type.slice(1)} /> },
+        { label: 'Type', value: <StatusChip tone={CHANGE_TONE[c.type]} size="sm" label={CHANGE_LABEL[c.type] || c.type} /> },
         { label: 'Judged by', value: <><KindBadge kind={c.kind} /><span>{c.judged}</span></> },
         { label: 'Reason', value: c.reason },
         { label: 'Reopened', value: c.reopened.join(', ') || 'None' },
-        { label: 'Carried forward', value: c.carried.join(', ') || 'None' },
+        { label: 'Kept from last review', value: c.carried.join(', ') || 'None' },
       ]} />
     </Sheet>
   );

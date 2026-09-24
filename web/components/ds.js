@@ -2597,7 +2597,7 @@ const VERDICTS = {
   },
   carried: {
     tone: 'neutral',
-    label: 'Carried forward',
+    label: 'Kept from last review',
     icon: 'corner-down-right'
   },
   rerun: {

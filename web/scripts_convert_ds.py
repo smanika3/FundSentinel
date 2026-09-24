@@ -21,6 +21,9 @@ body = body[: -len("})();")]                                   # drop the outer 
 nav_data = "  id: 'data',\n  icon: 'database',\n  label: 'Data'\n}];"
 assert nav_data in body, "sidebar NAV changed in the design export"
 body = body.replace(nav_data, nav_data[:-2] + ", {\n  id: 'policy',\n  icon: 'shield-check',\n  label: 'Policy'\n}];", 1)
+# Plain wording for a reviewer whose verdict was reused in an update run.
+assert "label: 'Carried forward'," in body
+body = body.replace("label: 'Carried forward',", "label: 'Kept from last review',", 1)
 exports = "\n".join(f"export const {n} = __ds_ns.{n};" for n in names)
 out = ("'use client';\n/* Generated from design/_ds_bundle.js by web/scripts_convert_ds.py. Do not edit by hand. */\n"
        "/* eslint-disable */\nimport * as React from 'react';\n\n" + body +

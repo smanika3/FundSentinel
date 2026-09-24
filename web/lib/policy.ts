@@ -69,7 +69,7 @@ export function getPolicy() {
     { what: "A compliance fail always means rejection", detail: "Applied by code before the AI Decision owner runs; the AI cannot override it." },
     { what: "Every verdict needs evidence", detail: "A verdict with no evidence is sent back to the reviewer for proof." },
     { what: "A verdict that can't be proven goes to a person", detail: "If the Evidence checker still can't match the reviewer's claims to the fund's numbers after a send-back, no automatic decision is made." },
-    { what: "A data repair can never help a fund pass", detail: "SelfHeal may fix obvious data errors, but any fix that would turn a policy fail into a pass is blocked, and the fund is flagged instead." },
+    { what: "A data repair can never help a fund pass", detail: "The data repairer (SelfHeal) may fix obvious data errors, but any fix that would turn a policy fail into a pass is blocked, and the fund is flagged instead." },
     { what: "A change that crosses a limit always reopens its reviewers", detail: "In an update run, the AI decides which other changes matter, but it cannot skip one that crosses a policy limit." },
   ];
 

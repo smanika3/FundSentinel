@@ -6,8 +6,8 @@ import { json, s3Json, sql } from "./db";
 const REVIEWERS = ["analyst", "compliance", "finance", "suitability"] as const;
 const TITLE: Record<string, string> = {
   analyst: "Analyst", compliance: "Compliance", finance: "Finance", suitability: "Suitability",
-  supervisor: "Supervisor", evidence_checker: "Evidence checker", guardrail: "Guardrail", orchestrator: "Orchestrator",
-  radar: "Radar-lite", decision_owner: "Decision owner",
+  supervisor: "Supervisor", evidence_checker: "Evidence checker", guardrail: "Safety rule", orchestrator: "Pipeline",
+  radar: "Change checker", decision_owner: "Decision owner",
 };
 
 const FIELD_LABEL: Record<string, string> = {
@@ -50,6 +50,7 @@ export function money(v: number, ccy = "USD"): string {
 export function fmt(field: string, v: unknown, ccy?: string): string {
   if (v === null || v === undefined || v === "") return "—";
   if (Array.isArray(v)) return v.length ? v.join(", ") : "none";
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}/.test(v)) return dateText(v)!;
   const n = num(v);
   if (n === null) return String(v);
   if (RATE.has(field)) return `${(n * 100).toFixed(2)}%`;
@@ -118,10 +119,58 @@ const KIND_LABEL: Record<string, string> = {
   missing_required: "missing required value", impossible_date: "impossible date", shared_name: "name used by another fund",
   implausible_value: "unusually high value", duplicate_row: "duplicate row", duplicate_id: "duplicate fund ID",
   ai_inconsistency: "contradiction spotted by the Quality inspector", unreadable: "unreadable value",
+  // tool-output keys and labels the agents sometimes quote
+  missing_required_fields: "missing required fields", data_quality_flags: "data warnings", fund_flags: "fund warnings",
+  cannot_assess: "can't assess", approved_with_conditions: "approved with conditions", flagged_for_review: "needs a person",
+  prohibited_category_keywords: "banned product types", min_total_net_assets_usd: "minimum fund size",
+  min_track_record_years: "minimum age", max_expense_ratio: "fee cap", max_premium_over_category: "fee limit versus similar funds",
+  general_investor_max_risk: "risk limit for general investors", min_history_years: "minimum history",
 };
+// Code words the agents and the pipeline write, and what a non-expert would say instead.
+const WORDS: [RegExp, string][] = [
+  [/\bSelfHeal fix\b/g, "Repaired by AI"], [/\bSelfHeal best guess\b/g, "AI best guess"],
+  [/\bSelfHeal\b/g, "the data repairer"], [/\bthe Profiler\b/g, "the column reader"], [/\bProfiler\b/g, "column reader"],
+  [/\bQuality agent\b/g, "Quality inspector"], [/\bRadar-lite agent\b/g, "change checker"],
+  [/'x_' derived fields/g, "calculated fields"], [/\ba constant value\b/g, "the same value for every fund"], [/\bis null\b/g, "is empty"], [/\bnull\b/g, "empty"],
+  [/\bISO[- ]formatted\b/gi, "standard-format"], [/\bISO 8601\b/g, "standard"], [/\bISO currency code\b/g, "currency code"],
+  [/\bISO dates?\b/g, "standard dates"],
+  [/\bparsed\b/g, "read"], [/\bparses\b/g, "reads"], [/\bparsing\b/g, "reading"], [/\bparse\b/g, "read"],
+  [/\bfractions\b/g, "decimals"], [/\bfraction\b/g, "decimal"],
+  [/\bnormali[sz]ed\b/g, "converted"], [/\bnormali[sz]ation\b/g, "conversion"],
+  [/\bcanonical (schema|field|column)s?\b/g, "standard $1"], [/\bcanonical\b/g, "standard"],
+  [/\bordinal\b/g, "ranked"], [/\bsimplistic proxy\b/g, "rough stand-in"], [/\bproxy\b/g, "stand-in"],
+  [/\bvia value_map\b/g, "(word turned into a number)"], [/\bvalue_map\b/g, "word-to-number table"],
+  [/\bmock fx\b/g, "demo exchange rate"], [/\bbps basis points\b/g, "basis points"],
+  [/\s?->\s?/g, " → "],
+];
+
+/** Plain words for agent- and pipeline-written text: field codes become labels ("expense_ratio" -> "fee"). */
 export function plain(text?: string | null): string {
-  return (text ?? "").replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (w) =>
-    FIELD_LABEL[w] ? FIELD_LABEL[w].toLowerCase() : KIND_LABEL[w] ?? w);
+  let t = (text ?? "").replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (w) =>
+    FIELD_LABEL[w] ? FIELD_LABEL[w].toLowerCase() : KIND_LABEL[w] ?? (w.startsWith("x_") ? label(w).toLowerCase() : w));
+  for (const [re, to] of WORDS) t = t.replace(re, to);
+  return t;
+}
+
+/** How a value was produced, from the pipeline's transform note ("derived: a / b - 1", "constant", "generated"). */
+function howText(t: string | null): string {
+  if (!t) return "Copied as-is";
+  if (t === "constant") return "Same for every fund";
+  if (t === "generated") return "Added by FundSentinel";
+  if (t.startsWith("derived: ")) return "Calculated: " + plain(t.slice(9)).replace(/ \/ /g, " ÷ ").replace(/ x /g, " × ");
+  return plain(t);
+}
+
+/** Units written by the pipeline and the data describer, in plain words. */
+function unitText(u?: string | null): string {
+  if (!u) return "—";
+  if (/^date\b/i.test(u)) return "date";
+  if (/^constant /.test(u)) return `same for every fund (${u.slice(9)})`;
+  if (u === "fraction") return "decimal (0.0075)";
+  if (u === "percent") return "percent (0.75)";
+  if (u === "bps") return "basis points (75)";
+  if (u === "auto") return "worked out per value";
+  return plain(u).replace(/\btext \(currency code\)/, "currency code");
 }
 
 /** "finance=fail", "implausible_value", "quarantine: …" -> plain words for the RedTeam "What caught it" column. */
@@ -155,10 +204,12 @@ function when(ts?: string | null): string {
   return d.toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "America/Phoenix" }) + `, ${t}`;
 }
 
+export const SAVED_LAYOUTS: Record<string, string> = { yahoo_us_mutualfunds: "Yahoo US funds", test_versions: "test files" };
 function mappingText(m?: string | null): string {
-  if (!m || m === "profiler-agent") return "columns understood automatically";
-  if (m.startsWith("radar vs ")) return "same mapping as the earlier run";
-  return "saved mapping: " + m.split("/").pop()!.replace(/\.json$/, "");
+  if (!m || m === "profiler-agent") return "columns read automatically";
+  if (m.startsWith("radar vs ")) return "same column layout as the earlier run";
+  const name = m.split("/").pop()!.replace(/\.json$/, "");
+  return "saved column layout: " + (SAVED_LAYOUTS[name] ?? name);
 }
 
 // ---------------------------------------------------------------- runs
@@ -226,7 +277,7 @@ export async function getRun(runId: string) {
       ticker: d.fund_id, name: d.fund_name ?? d.fund_id, category: d.category, outcome,
       reason: firstSentence(d.reason), v, time: s && isFinite(s.t0) ? `${Math.max(1, Math.round(s.t1 - s.t0))} s` : "—",
       rule: d.decided_by === "rule" ? RULE_APPLIED[d.rule_applied] ?? d.rule_applied : undefined,
-      conditions: json<string[]>(d.conditions, []),
+      conditions: json<string[]>(d.conditions, []).map(plain),
       setAside: outcome === "quarantined" ? plain(d.quarantine_reason ?? d.reason) : undefined,
       sendbacks: sendsByFund[d.fund_id] ?? 0,
     };
@@ -268,8 +319,8 @@ async function updateView(runId: string, baselineId: string, funds: FundRow[]) {
       return {
         id: c.change_id, ticker: c.fund_id, field: label(c.field), from: ccy(c.field, c.old_value), to: ccy(c.field, c.new_value),
         type: c.materiality, kind: c.decided_by === "guardrail" ? "rule" : "ai",
-        judged: c.decided_by === "guardrail" ? "Rule: crossed a policy limit" : "AI: Radar-lite agent",
-        reason: c.reason, reopened, carried: REVIEWERS.map((r) => TITLE[r]).filter((r) => !reopened.includes(r)),
+        judged: c.decided_by === "guardrail" ? "Rule: crossed a policy limit" : "AI: Change checker",
+        reason: plain(c.reason), reopened, carried: REVIEWERS.map((r) => TITLE[r]).filter((r) => !reopened.includes(r)),
       };
     }),
     stale: stale.map((s) => ({ ticker: s.fund_id, what: `${label(s.field)} ${fmt(s.field, s.old_value)} (${TITLE[s.reviewer] ?? s.reviewer})`,
@@ -294,7 +345,7 @@ function redteamView(rt: any) {
       result: r.result === "handled" ? "read" : r.result === "missed_other_reason" ? "other" : r.result,
       outcome: OUTCOME[r.outcome] ?? r.outcome,
       by: by.length ? by.map(caughtBy).join(" · ") : r.result === "handled" ? "Fee read correctly as 0.60%" : "Nothing caught it",
-      byKind: rule ? "rule" : "ai", disguise: r.disguise, reason: r.decision_reason,
+      byKind: rule ? "rule" : "ai", disguise: plain(r.disguise), reason: plain(r.decision_reason),
     };
   });
   const genuine = (rt.genuine ?? []).map((g: any) => ({ ticker: g.fund_id, name: g.fund_id, outcome: OUTCOME[g.outcome] ?? g.outcome, reason: firstSentence(g.reason) }));
@@ -338,10 +389,10 @@ export async function getFund(runId: string, fundId: string) {
     const facts: [string, string][] = [];
     if (fv?.raw !== undefined && fv?.raw !== null) facts.push(["Original text", String(fv.raw)]);
     facts.push(["Value used", fmt(field, value ?? fv?.value, ccy)]);
-    if (fv?.transform) facts.push([fv.transform.startsWith("derived") ? "How" : "Converted", fv.transform.replace(/^derived: /, "")]);
+    if (fv?.transform) facts.push([fv.transform.startsWith("derived") ? "How" : "Converted", howText(fv.transform).replace(/^Calculated: /, "")]);
     if (rule) facts.push(["Checked against", ruleText(rule)]);
     const flag = (rec.flags ?? []).find((f: any) => f.field === field);
-    if (flag) facts.push(["Repair", flag.detail]);
+    if (flag) facts.push(["Repair", plain(flag.detail)]);
     if (verified !== null) facts.push(["Evidence checker", verified ? "verified" : "not verified"]);
     sources[key] = {
       title: label(field), row: computed ? "Calculated" : rowOf(srcRow), file,
@@ -364,14 +415,14 @@ export async function getFund(runId: string, fundId: string) {
     const material = changes.filter((c) => c.materiality !== "routine");
     const whyFor = (r: string) => {
       const fields = material.filter((c) => (FIELD_REVIEWERS[c.field] ?? []).includes(r)).map((c) => label(c.field).toLowerCase());
-      return fields.length ? `the ${fields.join(" and the ")} changed` : "chosen by the Radar-lite agent";
+      return fields.length ? `the ${fields.join(" and the ")} changed` : "chosen by the change checker";
     };
     const [baseRun] = await sql(`SELECT source, updated_at FROM runs WHERE run_id = :b`, { b: meta.baseline_run_id });
     radar = {
       previously: before ? OUTCOME[before.decision] : null,
       changes: changes.map((c) => ({
         field: label(c.field), from: fmt(c.field, c.old_value, ccy), to: fmt(c.field, c.new_value, ccy), type: c.materiality,
-        kind: c.decided_by === "guardrail" ? "rule" : "ai", judged: c.decided_by === "guardrail" ? "Rule: crossed a policy limit" : "AI: Radar-lite agent",
+        kind: c.decided_by === "guardrail" ? "rule" : "ai", judged: c.decided_by === "guardrail" ? "Rule: crossed a policy limit" : "AI: Change checker",
       })),
       reopened: reopened.map((r) => ({ who: TITLE[r] ?? r, why: whyFor(r) })),
       compare: baseRun ? `${baseRun.source} (${when(baseRun.updated_at)})` : meta.baseline_run_id,
@@ -404,7 +455,7 @@ export async function getFund(runId: string, fundId: string) {
     const verdict = VERDICT[v.verdict] ?? "na";
     const reopenedWhy = radar?.reopenedSet?.has(n) ? radar.whyFor(n) : undefined;
     return {
-      name: TITLE[n], verdict, reason: v.reason, rows,
+      name: TITLE[n], verdict, reason: plain(v.reason), rows,
       confidence: verdict === "na" ? null : `${Math.round((v.confidence ?? 0) * 100)}%`,
       evidence: verified === null ? undefined : verified ? "verified" : "unverified", reopened: reopenedWhy,
     };
@@ -415,7 +466,7 @@ export async function getFund(runId: string, fundId: string) {
   const clock = (t: number) => { const s = Math.max(0, Math.round(t - t0)); return `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`; };
   const strip = (d?: string) => (d ?? "").replace(/^The Supervisor (says|asks): /, "").trim();
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-  const trim = (s: string, n = 220) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+  const trim = (raw: string, n = 220) => { const s = plain(raw); return s.length > n ? s.slice(0, n - 1) + "…" : s; };
   const timeline: any[] = [];
   for (let i = 0; i < events.length; i++) {
     const e = events[i];
@@ -446,13 +497,13 @@ export async function getFund(runId: string, fundId: string) {
         kind = e.actor === "evidence_checker" && !/reasoning is not supported/.test(e.detail ?? "") ? "rule" : "ai";
         text = `Sent ${target} back: ${trim(strip(e.detail).replace(/^The Evidence checker says your reasoning is not supported: /, ""), 200)}`; break;
       }
-      case "skipped": kind = "rule"; variant = "guardrail"; text = `Skipped ${target}: ${e.detail}`; break;
+      case "skipped": kind = "rule"; variant = "guardrail"; text = `Skipped ${target}: ${plain(e.detail)}`; break;
       case "unverified": kind = "rule"; variant = "sendback"; text = `Could not verify ${target}'s evidence: ${trim(e.detail ?? "", 160)}`; break;
       case "report": text = `Routing: ${trim(e.detail ?? "", 240)}`; break;
       case "decided": kind = dec.decided_by === "rule" ? "rule" : "ai"; variant = "final"; text = trim(e.detail ?? "", 260); break;
       case "reopened": variant = "radar"; text = trim(e.detail ?? "", 220); break;
-      case "carried_forward": kind = "rule"; variant = "radar"; text = target ? `${target} carried forward: ${e.detail}` : e.detail; break;
-      case "stale_evidence": kind = "rule"; variant = "radar"; text = `${target}: ${e.detail}`; break;
+      case "carried_forward": kind = "rule"; variant = "radar"; text = target ? `${target} kept from last review: ${plain(e.detail)}` : plain(e.detail); break;
+      case "stale_evidence": kind = "rule"; variant = "radar"; text = `${target}: ${plain(e.detail)}`; break;
       default: text = trim(e.detail ?? e.event, 220);
     }
     timeline.push({ actor: who, kind, variant, time: clock(e.t), text });
@@ -468,18 +519,18 @@ export async function getFund(runId: string, fundId: string) {
       if (!sources[k] && fv.value !== null && fv.value !== undefined) addSource(k, k, fv.value, null, null);
       return {
         field: label(k), file: fv.raw === null || fv.raw === undefined || calc ? "—" : String(fv.raw),
-        used: fmt(k, fv.value, ccy), by: t ? t.replace(/^derived: /, "Calculated: ") : "Copied as-is", kind: kindOf, n: sources[k] ? k : undefined, calc,
+        used: fmt(k, fv.value, ccy), by: howText(t), kind: kindOf, n: sources[k] ? k : undefined, calc,
       };
     });
 
-  const warnings = (rec.flags ?? []).map((f: any) => f.detail);
+  const warnings = (rec.flags ?? []).map((f: any) => plain(f.detail));
   const status = rec.status === "quarantined" ? "setaside" : warnings.length ? "warnings" : "ok";
   return {
     status, reason: [plain(dec.reason)],
     decidedBy: dec.decided_by === "rule" ? { kind: "rule", text: RULE_APPLIED[dec.rule_applied] ?? dec.rule_applied }
       : { kind: "ai", text: "Decision owner" },
     previously: radar?.previously && radar.previously !== outcome ? radar.previously : null,
-    conditions: json<string[]>(dec.conditions, []),
+    conditions: json<string[]>(dec.conditions, []).map(plain),
     setAside: status === "setaside" ? plain(rec.quarantine_reason ?? dec.reason) : null,
     warnings: warnings.length ? warnings : null,
     changes: radar?.changes?.length ? radar.changes : null,
@@ -509,9 +560,9 @@ export async function getData(runId: string) {
   const checks: any[] = summary?.mapping_checks ?? (await sql(`SELECT field, column_name AS column, confidence, accepted, reason
                                                                 FROM mapping_checks WHERE run_id = :r`, { r: runId }));
   const used = summary?.mapping_used?.fields ?? {};
-  const unitOf = (spec: any) => spec?.unit ?? (spec?.scale ? `risk ${spec.scale[0]}–${spec.scale[1]} rescaled to 1–5`
+  const unitOf = (spec: any) => spec?.unit ? unitText(spec.unit) : spec?.scale ? `risk ${spec.scale[0]}–${spec.scale[1]} rescaled to 1–5`
     : spec?.multiplier ? `× ${Number(spec.multiplier).toLocaleString("en-US")}` : spec?.value_map ? "words → numbers"
-    : spec?.date_format ? `date ${spec.date_format}` : spec?.constant ? `constant ${spec.constant}` : "—");
+    : spec?.date_format ? "date" : spec?.constant ? `same for every fund (${spec.constant})` : "—";
   return {
     file: meta.source,
     hasReport: !!quality,
@@ -523,29 +574,30 @@ export async function getData(runId: string) {
       const blocked = i.decided_by === "guardrail" && /Guardrail:/.test(i.reason ?? "");
       const who = i.decided_by === "guardrail" ? "safety" : i.decided_by === "rule" ? "rule" : "ai";
       return {
-        id: n + 1, fund: i.fund_id ?? "—", problem: plain(i.detail).replace(/ is outside [-0-9.]+\.\.[-0-9.None]+$/, " is outside the allowed range"), did: blocked ? "blocked" : DID[i.action] ?? "flagged", who,
-        whoLabel: i.decided_by === "selfheal" ? "AI · SelfHeal" : i.decided_by === "quality" ? "AI · Quality inspector"
+        id: n + 1, fund: i.fund_id ?? "—", problem: plain((i.detail ?? "").replace(/ is outside [-0-9.]+\.\.[-0-9.None]+$/, " is outside the allowed range")), did: blocked ? "blocked" : DID[i.action] ?? "flagged", who,
+        whoLabel: i.decided_by === "selfheal" ? "AI · Data repairer" : i.decided_by === "quality" ? "AI · Quality inspector"
           : i.decided_by === "guardrail" ? "Safety rule" : "Rule",
         conf: i.confidence === null ? "—" : `${Math.round(i.confidence * 100)}%`, why: plain(i.reason),
         row: i.row_num, col: i.field, val: i.raw ?? "", newValue: i.new_value,
       };
     }),
-    description: meta.dataset_description,
+    description: meta.dataset_description ? plain(meta.dataset_description) : null,
     columns: columns.map((c) => ({
-      col: label(c.name), meaning: c.description ?? "", unit: c.unit ?? "—", cov: Math.round((c.coverage ?? 0) * 100),
-      from: c.kind === "derived" ? (c.name.startsWith("x_") && transform?.suggested?.some((s: any) => s.name === c.name && s.accepted) ? "Proposed by AI" : "Calculated") : c.source_column ?? "—",
-      caveat: c.caveats ?? "", calc: c.kind === "derived" && !transform?.suggested?.some((s: any) => s.name === c.name),
+      col: label(c.name), meaning: plain(c.description), unit: unitText(c.unit), cov: Math.round((c.coverage ?? 0) * 100),
+      from: c.kind === "derived" ? (c.name.startsWith("x_") && transform?.suggested?.some((s: any) => s.name === c.name && s.accepted) ? "Proposed by AI" : "Calculated")
+        : /^constant /.test(c.source_column ?? "") ? `Same for every fund (${c.source_column.slice(9)})` : c.source_column ?? "—",
+      caveat: plain(c.caveats), calc: c.kind === "derived" && !transform?.suggested?.some((s: any) => s.name === c.name),
       ai: !!transform?.suggested?.some((s: any) => s.name === c.name && s.accepted),
     })),
     proposed: (transform?.suggested ?? []).map((s: any) => ({ name: label(s.name ?? ""), accepted: !!s.accepted,
-      why: s.accepted ? (s.why_useful ?? s.description ?? "") : (s.reason ?? "") })),
+      why: plain(s.accepted ? (s.why_useful ?? s.description) : s.reason) })),
     mapping: checks.map((c: any) => ({
-      ours: label(c.field), theirs: c.column ?? (used[c.field]?.constant !== undefined ? "constant" : "—"),
+      ours: label(c.field), theirs: c.column ?? (used[c.field]?.constant !== undefined ? "none: same for every fund" : "—"),
       unit: unitOf(used[c.field]), conf: c.confidence === null || c.confidence === undefined ? "—" : `${Math.round(c.confidence * 100)}%`,
-      ok: !!c.accepted, reject: c.accepted ? "" : c.reason, why: used[c.field]?.rationale ?? (c.accepted ? "" : c.reason),
+      ok: !!c.accepted, reject: c.accepted ? "" : plain(c.reason), why: plain(used[c.field]?.rationale ?? (c.accepted ? "" : c.reason)),
     })),
     rounds: (summary?.profiler_rounds ?? []).map((r: any) => ({ round: r.round, accepted: r.accepted, proposed: r.proposed,
-      rejected: (r.rejected ?? []).map((x: any) => `${label(x.field)} (${x.reason})`) })),
-    notMapped: summary?.mapping_used?.not_mapped ?? [],
+      rejected: (r.rejected ?? []).map((x: any) => `${label(x.field)} (${plain(x.reason)})`) })),
+    notMapped: (summary?.mapping_used?.not_mapped ?? []).map((x: string) => plain(x)),
   };
 }

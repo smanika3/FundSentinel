@@ -59,7 +59,7 @@ function RunForm({ runs, onStart, starting }) {
   return (
     <div style={{ marginTop: 32, maxWidth: 760, padding: '28px 28px 24px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)', display: 'grid', gap: 26 }}>
       {err && err !== 'login' ? <Callout kind="error" title="Something went wrong">{err}</Callout> : null}
-      <Field label="File" hint="Fund files stored in the cloud (S3 raw/), or upload a CSV with any column names.">
+      <Field label="File" hint="Fund files already uploaded, or upload your own CSV. Column names don't need to match ours.">
         <div style={{ display: 'flex', gap: 8 }}>
           <Select mono value={file} onChange={setFile} options={files.length ? files : [file || 'Loading files…']} style={{ flex: 1 }} />
           <input ref={upload} type="file" accept=".csv" onChange={onUpload} style={{ display: 'none' }} />
@@ -76,11 +76,11 @@ function RunForm({ runs, onStart, starting }) {
         ]} />
       </Field>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        <Field label="Column mapping" hint={type === 'update' ? 'An update reuses the earlier run’s mapping.' : undefined}>
+        <Field label="Reading the columns" hint={type === 'update' ? 'An update reads the columns the same way as the earlier run.' : undefined}>
           <Select value={type === 'update' ? 'auto' : mapping} onChange={setMapping} disabled={type === 'update'} options={[
-            { value: 'auto', label: type === 'update' ? 'Same as the earlier run' : 'Let FundSentinel work it out' },
-            { value: 'yahoo_us_mutualfunds', label: 'Saved mapping: yahoo_us' },
-            { value: 'test_versions', label: 'Saved mapping: test_versions' },
+            { value: 'auto', label: type === 'update' ? 'Same as the earlier run' : 'Work it out automatically' },
+            { value: 'yahoo_us_mutualfunds', label: 'Saved layout: Yahoo US funds' },
+            { value: 'test_versions', label: 'Saved layout: test files' },
           ]} />
         </Field>
         <Field label="Funds" hint="A typical fund takes 1–3 minutes; 3 run at a time.">
@@ -93,7 +93,7 @@ function RunForm({ runs, onStart, starting }) {
       </div>
       <Disclosure label="Advanced">
         <div style={{ display: 'grid', gap: 18, paddingLeft: 20 }}>
-          <Switch id="routing" checked={routing} onChange={setRouting} label="Supervisor routing" description="The Supervisor decides which reviewers to call and in what order. Off: every reviewer runs on every fund." />
+          <Switch id="routing" checked={routing} onChange={setRouting} label="Let the Supervisor choose reviewers" description="The Supervisor decides which reviewers to call and in what order. Off: every reviewer runs on every fund." />
           <Field label="Funds reviewed at the same time" style={{ maxWidth: 240 }}><Select value={par} onChange={setPar} options={['1', '2', '3', '4', '5']} /></Field>
         </div>
       </Disclosure>

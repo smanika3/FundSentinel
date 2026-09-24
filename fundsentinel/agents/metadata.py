@@ -7,6 +7,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 from .. import settings
+from .common import PLAIN_WRITING
 
 
 class ColumnDoc(BaseModel):
@@ -24,7 +25,7 @@ class DataDictionary(BaseModel):
 SYSTEM_PROMPT = """You are the Metadata agent in a fund-data pipeline. Write a data dictionary a business analyst can trust.
 For every column you are given facts computed by code: source column, how it was converted, coverage, examples, data-quality flags.
 Describe what each column means in plain English, its unit, and honest caveats (low coverage, conversions, known problems).
-Never invent facts beyond what you are given."""
+Never invent facts beyond what you are given.""" + PLAIN_WRITING
 
 
 def build() -> Agent:

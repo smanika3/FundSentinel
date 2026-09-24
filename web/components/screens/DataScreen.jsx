@@ -17,7 +17,7 @@ export default function DataScreen({ run, go, data }) {
       <div>
         <PageHeader title="Data" subtitle="Can we trust this file?" meta={<>file: <Mono chip strong={false}>{run.file}</Mono></>} />
         <EmptyState style={{ marginTop: 32 }} icon="database" title="No data report for this run">
-          This run was recorded before the data team (Quality, SelfHeal, Transform, Metadata) was added, or it is an update run that reuses an earlier run's checks.
+          This run was recorded before the data checks were added, or it is an update run that reuses an earlier run's checks.
         </EmptyState>
       </div>
     );
@@ -25,10 +25,13 @@ export default function DataScreen({ run, go, data }) {
   const p = open ? PROBLEMS.find((x) => x.id === open) : null;
   return (
     <div>
-      <PageHeader title="Data" subtitle="Can we trust this file?" meta={<>file: <Mono chip strong={false}>{run.file}</Mono> · checked by the data team before the committee</>} />
-      <div style={{ marginTop: 32 }}>
+      <PageHeader title="Data" subtitle="Can we trust this file?" meta={<>file: <Mono chip strong={false}>{run.file}</Mono> · checked before the committee sees any fund</>} />
+      <p style={{ margin: '14px 0 0', maxWidth: 860, font: 'var(--type-small)', color: 'var(--text-2)', textWrap: 'pretty' }}>
+        Five AI agents prepare the file, and code checks their work: the <b>column reader</b> (Profiler) works out which column is which, the <b>quality inspector</b> finds problems, the <b>data repairer</b> (SelfHeal) fixes what it safely can, the <b>data organiser</b> (Transform) puts units in one format and proposes useful new columns, and the <b>data describer</b> (Metadata) explains each column.
+      </p>
+      <div style={{ marginTop: 24 }}>
         <TileRow>
-          <NumberTile label="Quality score" value={data.tiles.score === null ? '—' : <>{data.tiles.score}<span style={{ fontSize: 20, fontWeight: 400, color: 'var(--text-2)' }}>/100</span></>} />
+          <NumberTile label="Quality score" sub="The quality inspector's rating; 100 = no problems" value={data.tiles.score === null ? '—' : <>{data.tiles.score}<span style={{ fontSize: 20, fontWeight: 400, color: 'var(--text-2)' }}>/100</span></>} />
           <NumberTile label="Problems found" value={data.tiles.problems} />
           <NumberTile label="Funds with warnings" tone="person" value={data.tiles.warnings} />
           <NumberTile label="Funds set aside" tone="neutral" value={data.tiles.setAside} />
@@ -63,17 +66,17 @@ export default function DataScreen({ run, go, data }) {
       <section style={{ marginTop: 44, display: 'grid', gap: 14 }}>
         <SectionTitle>What each column means</SectionTitle>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <KindBadge kind="ai" label="AI · Metadata" />
+          <KindBadge kind="ai" label="AI · Data describer" />
           <p style={{ margin: 0, color: 'var(--text-2)', maxWidth: 820, textWrap: 'pretty' }}>{data.description || 'No dataset description for this run.'}</p>
         </div>
         <DataTable dense rowKey="col" rows={COLUMNS}
           columns={[
             { key: 'col', label: 'Column', render: (c) => <span style={{ fontWeight: 500 }}>{c.col}{c.calc ? <span style={{ marginLeft: 8, font: '500 12px/1 var(--font-sans)', color: 'var(--text-3)' }}>Calculated</span> : null}{c.ai ? <KindBadge kind="ai" label="AI proposed" style={{ marginLeft: 8 }} /> : null}</span> },
             { key: 'meaning', label: 'Meaning', small: true },
-            { key: 'unit', label: 'Unit', small: true, muted: true, width: 90 },
-            { key: 'cov', label: 'Coverage', width: 130, render: (c) => <CoverageBar value={c.cov} width={56} /> },
-            { key: 'from', label: 'Where it came from', small: true, render: (c) => c.calc || c.ai ? <span style={{ color: 'var(--text-2)' }}>{c.from}</span> : <Mono chip strong={false}>{c.from}</Mono> },
-            { key: 'caveat', label: 'Caveats', small: true, muted: true },
+            { key: 'unit', label: 'Written as', small: true, muted: true, width: 120 },
+            { key: 'cov', label: 'Filled in', width: 130, render: (c) => <CoverageBar value={c.cov} width={56} /> },
+            { key: 'from', label: 'Where it came from', small: true, render: (c) => c.calc || c.ai || c.from.startsWith('Same for every fund') ? <span style={{ color: 'var(--text-2)' }}>{c.from}</span> : <Mono chip strong={false}>{c.from}</Mono> },
+            { key: 'caveat', label: 'Watch out for', small: true, muted: true },
           ]} />
         <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
           <div style={{ fontWeight: 600, marginBottom: 8 }}>Columns the AI proposed</div>
@@ -87,17 +90,17 @@ export default function DataScreen({ run, go, data }) {
       </section>
 
       <section style={{ marginTop: 44, display: 'grid', gap: 14 }}>
-        <SectionTitle aside={<span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>Found by <KindBadge kind="ai" label="AI · Profiler" /> checked by <KindBadge kind="rule" /></span>}>How the file was understood</SectionTitle>
+        <SectionTitle aside={<span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>Found by <KindBadge kind="ai" label="AI · Column reader" /> checked by <KindBadge kind="rule" /></span>}>How the file was understood</SectionTitle>
         <DataTable dense rowKey="ours" rows={MAPPING}
           columns={[
-            { key: 'ours', label: 'Our field ← their column', render: (m) => <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ fontWeight: 500 }}>{m.ours}</span><span style={{ color: 'var(--text-3)' }}>←</span><Mono chip strong={false}>{m.theirs}</Mono></span> },
-            { key: 'unit', label: 'Unit found', small: true },
+            { key: 'ours', label: 'Our name ← column in the file', render: (m) => <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span style={{ fontWeight: 500 }}>{m.ours}</span><span style={{ color: 'var(--text-3)' }}>←</span><Mono chip strong={false}>{m.theirs}</Mono></span> },
+            { key: 'unit', label: 'Written as', small: true },
             { key: 'conf', label: 'Sure', width: 64, align: 'right', small: true, muted: true },
-            { key: 'ok', label: 'Check', width: 220, render: (m) => m.ok ? <StatusChip tone="good" size="sm" label="Accepted" /> : <StatusChip tone="stop" size="sm" label="Rejected" suffix={'· ' + (m.reject || '').toLowerCase()} /> },
+            { key: 'ok', label: 'Code check', width: 220, render: (m) => m.ok ? <StatusChip tone="good" size="sm" label="Accepted" /> : <StatusChip tone="stop" size="sm" label="Rejected" suffix={'· ' + (m.reject || '').toLowerCase()} /> },
             { key: 'why', label: 'AI’s reasoning', small: true, muted: true },
           ]} />
         <div style={{ font: 'var(--type-small)', color: 'var(--text-2)', display: 'grid', gap: 4 }}>
-          {data.rounds.length ? data.rounds.map((r) => <span key={r.round}>Attempt {r.round}: {r.accepted} of {r.proposed} accepted{r.rejected.length ? ', rejected ' + r.rejected.join('; ') : ''}.</span>) : <span>A saved mapping was used, so the Profiler didn't run.</span>}
+          {data.rounds.length ? data.rounds.map((r) => <span key={r.round}>Round {r.round}: {r.accepted} of {r.proposed} accepted{r.rejected.length ? ', rejected ' + r.rejected.join('; ') : ''}.</span>) : <span>A saved column layout was used, so the column reader didn't run.</span>}
           {data.notMapped.length ? <span>Not found: {data.notMapped.join(' · ')}</span> : null}
         </div>
       </section>

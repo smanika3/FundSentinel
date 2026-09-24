@@ -14,6 +14,7 @@ from strands.models import BedrockModel
 
 from .. import mapping as mp
 from .. import normalise, profile, settings
+from .common import PLAIN_WRITING
 
 MAX_ROUNDS = 3
 
@@ -58,7 +59,7 @@ Rules:
 - fund_id must identify a fund: prefer a ticker or code column; if there is none, use the name column.
 - Use `constant` only when the value is certain from context (e.g. currency INR for a file of Indian funds). Never invent dates or numbers.
 - confidence reflects how sure you are of BOTH the column and the unit.
-Code will check every mapping (column exists, values parse, values fall inside the field's range). If a field is rejected you will be told why; fix it or drop it."""
+Code will check every mapping (column exists, values parse, values fall inside the field's range). If a field is rejected you will be told why; fix it or drop it.""" + PLAIN_WRITING
 
 
 def _schema_text() -> str:

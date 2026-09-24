@@ -7,6 +7,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 from .. import settings
+from .common import PLAIN_WRITING
 
 
 class Suggestion(BaseModel):
@@ -29,7 +30,7 @@ and some standard derived columns exist. Propose up to 6 NEW columns that would 
 Two kinds:
 - source_column: bring in a useful column the mapping did not use (e.g. a Sharpe ratio, turnover, a rating). Give its unit if it is a rate.
 - formula: combine existing fields with + - * / only (e.g. "return_5y / expense_ratio"). Only use field names you were given.
-Prefer columns with good coverage. Do not duplicate existing fields. Code will validate every suggestion and reject bad ones."""
+Prefer columns with good coverage. Do not duplicate existing fields. Code will validate every suggestion and reject bad ones.""" + PLAIN_WRITING
 
 
 def build() -> Agent:

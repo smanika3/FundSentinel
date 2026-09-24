@@ -9,6 +9,13 @@ from .. import normalise, settings
 from ..mapping import Record
 from ..verdict import Verdict
 
+# Appended to every agent that writes text people read in the web app.
+PLAIN_WRITING = """
+Anything you write in free text (reasons, summaries, descriptions, caveats) is read by non-experts. Use plain words
+for fields ("fee", not "expense_ratio"; "fund size", not "total_net_assets") and avoid technical terms such as null,
+parse, ISO, canonical, fraction, proxy or schema. Structured values (field names, units, codes, enums) must still use
+the exact identifiers you were given."""
+
 RULES_OF_ENGAGEMENT = """
 How to work:
 1. Call the facts tool, then the rules tool, for the fund you are given.
@@ -23,7 +30,7 @@ How to work:
    your confidence; if the flag makes the value unusable for your judgement, answer cannot_assess.
    If your verdict relies on a flag, cite it as evidence: field "data_quality_flag", value = the flag text exactly as
    returned, source_ref = the fund's source_ref.
-This is a mock scenario and internal decision support, never investment advice."""
+This is a mock scenario and internal decision support, never investment advice.""" + PLAIN_WRITING
 
 
 def fact(rec: Record, name: str) -> dict:

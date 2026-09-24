@@ -4,6 +4,7 @@ import {PageHeader, SectionTitle, Mono, OutcomeChip, StatusChip, KindBadge, Call
 
 const NAMES = ['Analyst', 'Compliance', 'Finance', 'Suitability'];
 const CHANGE_TONE = { routine: 'neutral', material: 'stop', ambiguous: 'person' };
+const CHANGE_LABEL = { routine: 'Routine', material: 'Matters', ambiguous: 'Unclear' };
 
 function Reason({ parts, hover, setHover, openSrc, active }) {
   return (
@@ -94,14 +95,14 @@ export default function FundScreen({ run, route, go, detail }) {
               <div key={c.field + i} style={{ display: 'grid', gridTemplateColumns: '120px minmax(0,1fr) 120px 240px', gap: 16, alignItems: 'center', padding: '12px 16px', borderTop: i ? '1px solid var(--border)' : 0 }}>
                 <span style={{ fontWeight: 600 }}>{c.field}</span>
                 <span style={{ fontVariantNumeric: 'tabular-nums' }}><span style={{ color: 'var(--text-2)', textDecoration: 'line-through' }}>{c.from}</span> → {c.field === 'Fee' && d.sources.expense_ratio ? <NumberLink id="expense_ratio" hlKey="expense_ratio" value={c.to} hovered={hover === 'expense_ratio'} active={srcId === 'expense_ratio'} onOpen={setSrcId} onHover={setHover} /> : c.to}</span>
-                <StatusChip tone={CHANGE_TONE[c.type]} size="sm" label={c.type[0].toUpperCase() + c.type.slice(1)} />
+                <StatusChip tone={CHANGE_TONE[c.type]} size="sm" label={CHANGE_LABEL[c.type] || c.type} />
                 <span style={{ display: 'flex', gap: 8, alignItems: 'center', font: 'var(--type-small)', color: 'var(--text-2)' }}><KindBadge kind={c.kind} />{c.judged.replace(/^(AI|Rule): ?/, '') || 'Judged by AI'}</span>
               </div>
             ))}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20, padding: '14px 16px', borderTop: '1px solid var(--border)', background: 'var(--bg-subtle)', font: 'var(--type-small)' }}>
               <div><div style={{ fontWeight: 600, marginBottom: 6 }}>Reopened</div>{d.reopened.map((r) => <div key={r.who} style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3 }}><Icon name="history" size={14} /><span><b style={{ fontWeight: 500 }}>{r.who}</b>: {r.why}</span></div>)}</div>
-              <div><div style={{ fontWeight: 600, marginBottom: 6 }}>Carried forward</div>{d.carried.map((r) => <div key={r.who} style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3 }}><Icon name="corner-down-right" size={14} /><span><b style={{ fontWeight: 500 }}>{r.who}</b>: {r.why}</span></div>)}</div>
-              <div><div style={{ fontWeight: 600, marginBottom: 6 }}>Out-of-date evidence</div>{d.stale.map((s) => <div key={s} style={{ color: 'var(--text-2)', marginTop: 3 }}>{s}</div>)}</div>
+              <div><div style={{ fontWeight: 600, marginBottom: 6 }}>Kept from last review</div>{d.carried.map((r) => <div key={r.who} style={{ display: 'flex', gap: 6, alignItems: 'center', marginTop: 3 }}><Icon name="corner-down-right" size={14} /><span><b style={{ fontWeight: 500 }}>{r.who}</b>: {r.why}</span></div>)}</div>
+              <div><div style={{ fontWeight: 600, marginBottom: 6 }}>Old evidence no longer valid</div>{d.stale.map((s) => <div key={s} style={{ color: 'var(--text-2)', marginTop: 3 }}>{s}</div>)}</div>
             </div>
           </div>
         </section>
