@@ -56,6 +56,8 @@ st.sidebar.metric("Pipeline time", f"{run.seconds:.0f} s")
 decisions = q("""SELECT d.fund_id, f.fund_name, f.category, d.decision, d.decided_by, d.rule_applied, d.reason, d.conditions
                  FROM decisions d JOIN funds f USING (run_id, fund_id) WHERE d.run_id = :r ORDER BY d.fund_id""", r=run_id)
 verdicts = q("SELECT fund_id, reviewer, verdict, reason, evidence, confidence FROM verdicts WHERE run_id = :r", r=run_id)
+if verdicts.empty:
+    verdicts = pd.DataFrame(columns=["fund_id", "reviewer", "verdict", "reason", "evidence", "confidence"])
 
 extra = q("SELECT baseline_run_id, redteam FROM runs WHERE run_id = :r", r=run_id)
 baseline_id = extra["baseline_run_id"].iloc[0] if not extra.empty else None
@@ -199,15 +201,19 @@ with tab_fund:
                             + (f": {e.detail[:400]}" if e.detail else ""))
 
     st.markdown("#### Reviewers")
-    for _, v in verdicts[verdicts.fund_id == fund_id].sort_values("reviewer").iterrows():
-        with st.expander(f"{v.reviewer.title()}: {VERDICT_ICON.get(v.verdict, v.verdict)}  (confidence {v.confidence:.2f})",
-                         expanded=v.verdict != "pass"):
-            st.write(v.reason)
-            ev = pd.DataFrame(_json(v.evidence))
-            if "value" in ev:
-                ev["value"] = ev["value"].map(lambda x: "" if x is None else str(x))
-            if not ev.empty:
-                st.dataframe(ev, width="stretch", hide_index=True)
+    fund_verdicts = verdicts[verdicts.fund_id == fund_id] if "fund_id" in verdicts.columns else pd.DataFrame()
+    if not fund_verdicts.empty:
+        for _, v in fund_verdicts.sort_values("reviewer").iterrows():
+            with st.expander(f"{v.reviewer.title()}: {VERDICT_ICON.get(v.verdict, v.verdict)}  (confidence {v.confidence:.2f})",
+                             expanded=v.verdict != "pass"):
+                st.write(v.reason)
+                ev = pd.DataFrame(_json(v.evidence))
+                if "value" in ev:
+                    ev["value"] = ev["value"].map(lambda x: "" if x is None else str(x))
+                if not ev.empty:
+                    st.dataframe(ev, width="stretch", hide_index=True)
+    else:
+        st.info("No reviewer verdicts (fund was quarantined in Stage 1 or run with --stage1-only).")
 
     st.markdown("#### Provenance (every field: raw value, cleaned value, source)")
     rec = _json(q("SELECT record FROM funds WHERE run_id = :r AND fund_id = :f", r=run_id, f=fund_id).record.iloc[0])
