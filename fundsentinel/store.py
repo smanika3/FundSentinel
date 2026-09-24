@@ -29,7 +29,12 @@ SCHEMA_SQL = [
         run_id text, issue_id text, fund_id text, row_num int, field text, kind text, detail text, raw text,
         candidates jsonb, action text, new_value text, confidence real, decided_by text, reason text,
         PRIMARY KEY (run_id, issue_id))""",
+    """CREATE TABLE IF NOT EXISTS review_events (
+        run_id text, fund_id text, seq int, actor text, event text, reviewer text, detail text, t double precision,
+        PRIMARY KEY (run_id, fund_id, seq))""",
     "ALTER TABLE funds ADD COLUMN IF NOT EXISTS status text",
+    "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS supervisor jsonb",
+    "ALTER TABLE verdicts ADD COLUMN IF NOT EXISTS evidence_ok boolean",
     "ALTER TABLE runs ADD COLUMN IF NOT EXISTS quality jsonb",
 ]
 
@@ -144,6 +149,20 @@ def save_run(summary: dict, results: list[dict]):
                 created_at=now()""",
            [{"run_id": run_id, "fund_id": r["fund_id"], **{k: r["decision"][k] for k in
              ("decision", "decided_by", "rule_applied", "reason", "conditions")}} for r in results])
+    events = [{"run_id": run_id, "fund_id": r["fund_id"], "seq": e["seq"], "actor": e["actor"], "event": e["event"],
+               "reviewer": e["reviewer"], "detail": e["detail"], "t": e["t"]} for r in results for e in r.get("events", [])]
+    if events:
+        fids = sorted({e["fund_id"] for e in events})
+        for f in fids:  # replace the trail for re-reviewed funds so old events never mix with new ones
+            sql("DELETE FROM review_events WHERE run_id = :r AND fund_id = :f", {"r": run_id, "f": f})
+        _batch("""INSERT INTO review_events VALUES (:run_id, :fund_id, :seq, :actor, :event, :reviewer, :detail, :t)""", events)
+    for r in results:
+        if r.get("supervisor") is not None or r.get("evidence_status"):
+            sql("UPDATE decisions SET supervisor = :s WHERE run_id = :r AND fund_id = :f",
+                {"s": r.get("supervisor") or {}, "r": run_id, "f": r["fund_id"]})
+            for rev, st in (r.get("evidence_status") or {}).items():
+                sql("UPDATE verdicts SET evidence_ok = :ok WHERE run_id = :r AND fund_id = :f AND reviewer = :v",
+                    {"ok": bool(st["ok"]), "r": run_id, "f": r["fund_id"], "v": rev})
     # A partial re-run (e.g. one fund) must not shrink the run's totals: recount from the tables.
     sql("""UPDATE runs SET funds = (SELECT count(*) FROM decisions WHERE run_id = :run_id),
              decisions = (SELECT jsonb_object_agg(decision, n) FROM

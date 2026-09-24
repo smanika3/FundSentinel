@@ -4,7 +4,7 @@ from strands import Agent, tool
 
 from .. import settings
 from ..mapping import Record
-from .common import build_reviewer, fact, unknown
+from .common import build_reviewer, fact, fund_flags, unknown
 
 ROLE = ("You are the Suitability reviewer on a mock fund-approval committee. Your only job is investor fit: "
         "whether the fund's risk level is suitable for a general investor, or only for experienced investors. "
@@ -21,7 +21,7 @@ def build(records: dict[str, Record]) -> Agent:
         rec = records.get(fund_id)
         if rec is None:
             return unknown(fund_id)
-        return {"fund_id": fund_id, "fund_name": rec.get("fund_name"),
+        return {"fund_id": fund_id, "fund_flags": fund_flags(rec), "fund_name": rec.get("fund_name"),
                 "risk_score": fact(rec, "risk_score"), "category": fact(rec, "category")}
 
     @tool

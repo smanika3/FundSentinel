@@ -34,5 +34,12 @@
   "suitability": {
     "general_investor_max_risk": 4,
     "note": "Risk 5 funds can only be approved with conditions (restricted to experienced investors)."
+  },
+  "data_quality": {
+    "quarantine_if_missing": [
+      "fund_id",
+      "expense_ratio"
+    ],
+    "note": "A fund missing any of these cannot be judged fairly and is quarantined. Other missing required fields are flagged and the reviewers answer cannot_assess where needed."
   }
 }

@@ -4,7 +4,7 @@ from strands import Agent, tool
 
 from .. import settings
 from ..mapping import Record
-from .common import build_reviewer, fact, unknown
+from .common import build_reviewer, fact, fund_flags, unknown
 
 ROLE = "You are the Finance reviewer on a mock fund-approval committee. Your only job is the fund's fees."
 
@@ -18,7 +18,7 @@ def build(records: dict[str, Record]) -> Agent:
         rec = records.get(fund_id)
         if rec is None:
             return unknown(fund_id)
-        return {"fund_id": fund_id, "fund_name": rec.get("fund_name"), "category": rec.get("category"),
+        return {"fund_id": fund_id, "fund_flags": fund_flags(rec), "fund_name": rec.get("fund_name"), "category": rec.get("category"),
                 "expense_ratio": fact(rec, "expense_ratio"),
                 "category_expense_ratio": fact(rec, "category_expense_ratio")}
 

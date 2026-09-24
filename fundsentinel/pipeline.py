@@ -1,5 +1,5 @@
 """Pipeline: CSV -> Profiler mapping (or a given mapping) -> canonical records -> Quality checks -> SelfHeal
--> Quality report -> 4 reviewers (in parallel) -> Decision owner -> S3 + database.
+-> Quality report -> Supervisor routes 4 reviewers -> Evidence checker (code + AI) -> Decision owner -> S3 + database.
 Quarantined funds skip the committee; flagged funds carry their flags into it. Nothing pauses the pipeline.
 
 Run:  uv run python -m fundsentinel.pipeline --source data/raw/india/comprehensive_mutual_funds_data.csv \
@@ -9,6 +9,7 @@ Run:  uv run python -m fundsentinel.pipeline --source data/raw/india/comprehensi
 
 import argparse
 import json
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
@@ -17,7 +18,7 @@ from pathlib import Path
 import pandas as pd
 
 from . import mapping as mp
-from . import quality, store
+from . import committee, quality, store
 from .agents import analyst, common, compliance, decision, finance, profiler, selfheal, suitability
 from .agents import quality as quality_agent
 
@@ -26,7 +27,7 @@ REVIEWERS = {"analyst": analyst, "compliance": compliance, "finance": finance, "
 
 def run(source: str, mapping_path: str | None = None, limit: int | None = None, fund_ids: list[str] | None = None,
         run_id: str | None = None, out_dir: str = "runs", persist: bool = True, context: str = "",
-        stage1_only: bool = False) -> dict:
+        stage1_only: bool = False, use_supervisor: bool = True, workers: int = 3) -> dict:
     started = time.time()
     df = pd.read_csv(source, low_memory=False)
     source_name = "/".join(Path(source).parts[-2:])
@@ -85,26 +86,26 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
                              "rule_applied": "selfheal_quarantine", "reason": r.quarantine_reason, "conditions": []},
                 "seconds": 0} for r in scope if r.status == "quarantined"]
 
-    agents = {name: mod.build(records) for name, mod in REVIEWERS.items()}
-    owner = decision.build()
-    with ThreadPoolExecutor(max_workers=len(agents)) as pool:
-        for fid in ids:
-            t = time.time()
-            futures = {name: pool.submit(common.safe_review, agent, fid) for name, agent in agents.items()}
-            verdicts = [f.result() for f in futures.values()]
-            try:
-                dec = decision.decide(owner, fid, verdicts)
-            except Exception as e:
-                if common.is_auth_error(e):
-                    raise common.LoginExpired("AWS login expired. Run: aws login --profile fundsentinel") from e
-                dec = decision.Decision(fund_id=fid, decision="flagged_for_review", decided_by="rule",
-                                        rule_applied="decision_owner_error",
-                                        reason=f"The Decision owner could not run ({type(e).__name__}); flagged for a re-run.")
-            results.append({"fund_id": fid, "record": records[fid].to_dict(),
-                            "verdicts": [v.model_dump() for v in verdicts], "decision": dec.model_dump(),
-                            "seconds": round(time.time() - t, 1)})
-            print(f"{fid[:30]:30s} {dec.decision:26s} ({dec.decided_by}) "
-                  + " ".join(f"{v.reviewer[:4]}={v.verdict}" for v in verdicts))
+    local = threading.local()  # each worker thread gets its own reviewer agents (agents are not thread-safe)
+
+    def review_one(fid):
+        if not hasattr(local, "agents"):
+            local.agents = {name: mod.build(records) for name, mod in REVIEWERS.items()}
+            local.owner = decision.build()
+        t = time.time()
+        out = committee.review_fund(fid, records[fid], local.agents, local.owner, use_supervisor=use_supervisor)
+        dec, verdicts = out["decision"], out["verdicts"]
+        sends = sum(1 for e in out["events"] if e["event"] == "sent_back")
+        print(f"{fid[:30]:30s} {dec.decision:26s} ({dec.decided_by}) "
+              + " ".join(f"{v.reviewer[:4]}={v.verdict}" for v in verdicts)
+              + (f"  [{sends} send-back(s)]" if sends else "") + f"  {time.time() - t:.0f}s", flush=True)
+        return {"fund_id": fid, "record": records[fid].to_dict(),
+                "verdicts": [v.model_dump() for v in verdicts], "decision": dec.model_dump(),
+                "events": out["events"], "evidence_status": out["evidence_status"],
+                "supervisor": out["supervisor"], "seconds": round(time.time() - t, 1)}
+
+    with ThreadPoolExecutor(max_workers=max(1, min(workers, len(ids) or 1))) as pool:
+        results.extend(pool.map(review_one, ids))
 
     summary = {"run_id": run_id, "source": source_name, "mapping": mapping_path or "profiler-agent",
                "mapping_checks": [asdict(c) for c in checks], "mapping_used": mapping,
@@ -138,6 +139,9 @@ if __name__ == "__main__":
     ap.add_argument("--run-id", help="override the deterministic run ID (file + mapping fingerprint)")
     ap.add_argument("--no-store", action="store_true", help="skip S3 and database writes")
     ap.add_argument("--stage1-only", action="store_true", help="run the data team only (Profiler, Quality, SelfHeal)")
+    ap.add_argument("--no-supervisor", action="store_true", help="fixed routing: all four reviewers in parallel")
+    ap.add_argument("--workers", type=int, default=3, help="funds reviewed at the same time")
     a = ap.parse_args()
     run(a.source, a.mapping, limit=a.limit, fund_ids=a.funds, run_id=a.run_id, persist=not a.no_store,
-        context=a.context, stage1_only=a.stage1_only)
+        context=a.context, stage1_only=a.stage1_only, use_supervisor=not a.no_supervisor,
+        workers=a.workers)

@@ -69,10 +69,11 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 
 ## Phase 2 — High-scoring upgrades (Thu afternoon)
 
-- [ ] Supervisor with send-back (replaces the simple orchestrator)
+- [x] **Supervisor with send-back** (`fundsentinel/committee.py`, Opus): reviewers are its tools; it chooses order (compliance first; skips the rest after a compliance fail), briefs reviewers on data flags, and sends a reviewer back with a specific question on real conflicts (max 2 per fund). Code guardrail: compliance mandatory, others only skippable after a compliance fail. Every step logged in `review_events`. (replaces the simple orchestrator)
 - [ ] SelfHeal: fix / flag / quarantine, tested on `funds_broken.csv`
 - [ ] Field-level provenance (raw value, normalised value, source row, what changed it)
-- [ ] Evidence checker (verdict without proof → sent back)
+- [x] **Evidence checker** (`fundsentinel/evidence.py` + Opus in `committee.py`): code verifies every cited value appears in the reviewer's own tool output and source_ref is the fund's real row, one automatic send-back; Opus checks the reasoning follows from the evidence, one send-back. Still unproven after that → the fund is flagged, never decided. Caught a reviewer citing its own sentence as evidence.
+      Funds are reviewed 3 at a time (`--workers`): 6 funds in ~6.5 min. Slow case: AAAAX needed 4 send-backs (320 s). (verdict without proof → sent back)
 - [ ] Dashboard: bottlenecks, flags, decision reasons, click a fund → full story
 
 ## Phase 3 — Wow features (Thu night, only if Phase 2 works)

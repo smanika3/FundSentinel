@@ -32,16 +32,22 @@ You receive four reviewer verdicts (analyst, compliance, finance, suitability). 
 Base the decision only on the verdicts given. Write the reason so a non-expert understands it."""
 
 
-def layer1(fund_id: str, verdicts: list[Verdict]) -> Decision | None:
+def layer1(fund_id: str, verdicts: list[Verdict], evidence_status: dict | None = None) -> Decision | None:
     """Fixed rules that the AI cannot override."""
+    evidence_status = evidence_status or {}
+    comp = next((v for v in verdicts if v.reviewer == "compliance"), None)
+    if comp and comp.verdict == "fail" and evidence_status.get("compliance", {}).get("ok", True):
+        return Decision(fund_id=fund_id, decision="rejected", decided_by="rule", rule_applied="compliance_fail_rejects",
+                        reason=f"Compliance failed, which always means rejection. {comp.reason}")
+    unproven = [r for r, st in evidence_status.items() if not st.get("ok", True)]
+    if unproven:
+        return Decision(fund_id=fund_id, decision="flagged_for_review", decided_by="rule", rule_applied="evidence_unverified",
+                        reason=f"The {', '.join(unproven)} verdict(s) could not be backed by verified evidence even after "
+                               f"being sent back, so no automatic decision is made.")
     for v in verdicts:
         if v.verdict in ("pass", "concern", "fail") and not v.evidence:
             return Decision(fund_id=fund_id, decision="sent_back", decided_by="rule", rule_applied="evidence_required",
                             reason=f"The {v.reviewer} verdict gave no evidence, so it is sent back for proof.")
-    comp = next((v for v in verdicts if v.reviewer == "compliance"), None)
-    if comp and comp.verdict == "fail":
-        return Decision(fund_id=fund_id, decision="rejected", decided_by="rule", rule_applied="compliance_fail_rejects",
-                        reason=f"Compliance failed, which always means rejection. {comp.reason}")
     return None
 
 
@@ -51,8 +57,8 @@ def build() -> Agent:
                  callback_handler=None, name="decision_owner")
 
 
-def decide(agent: Agent, fund_id: str, verdicts: list[Verdict]) -> Decision:
-    fixed = layer1(fund_id, verdicts)
+def decide(agent: Agent, fund_id: str, verdicts: list[Verdict], evidence_status: dict | None = None) -> Decision:
+    fixed = layer1(fund_id, verdicts, evidence_status)
     if fixed:
         return fixed
     agent.messages.clear()

@@ -19,6 +19,8 @@ How to work:
    Never invent, round differently, or recompute numbers.
 5. If a fact carries data_quality_flags (the value was repaired or is suspect), mention it in your reason and lower
    your confidence; if the flag makes the value unusable for your judgement, answer cannot_assess.
+   If your verdict relies on a flag, cite it as evidence: field "data_quality_flag", value = the flag text exactly as
+   returned, source_ref = the fund's source_ref.
 This is a mock scenario and internal decision support, never investment advice."""
 
 
@@ -34,6 +36,14 @@ def fact(rec: Record, name: str) -> dict:
     if flags:
         out["data_quality_flags"] = [f["detail"] for f in flags]
     return out
+
+
+IDENTITY_FIELDS = {"fund_id", "fund_name", "ticker", "category", "fund_family", "*"}
+
+
+def fund_flags(rec: Record) -> list[str]:
+    """Data-quality flags about the fund's identity: relevant to every reviewer."""
+    return [f["detail"] for f in rec.flags if f.get("field") in IDENTITY_FIELDS]
 
 
 def history_years(rec: Record) -> float | None:
@@ -52,9 +62,19 @@ def build_reviewer(name: str, role: str, tools: list, model: str = "sonnet") -> 
                  structured_output_model=Verdict, callback_handler=None, name=name)
 
 
-def review(agent: Agent, fund_id: str) -> Verdict:
+def review(agent: Agent, fund_id: str, note: str = "") -> Verdict:
     agent.messages.clear()  # each fund is judged on its own, with no memory of earlier funds
-    return agent(f"Review fund_id={fund_id}.").structured_output
+    prompt = f"Review fund_id={fund_id}."
+    if note:
+        prompt += f"\nYou are being asked again. {note}"
+    return agent(prompt).structured_output
+
+
+def review_traced(agent: Agent, fund_id: str, note: str = "") -> tuple[Verdict, set]:
+    """Review, and return every value the reviewer's tools produced (for the Evidence checker)."""
+    from ..evidence import tool_values
+    v = review(agent, fund_id, note)
+    return v, tool_values(agent.messages)
 
 
 AUTH_ERRORS = ("ExpiredToken", "LoginRefreshRequired", "UnrecognizedClient", "InvalidSignature", "session has expired")
@@ -71,12 +91,12 @@ def is_auth_error(e: Exception) -> bool:
 TRANSIENT_ERRORS = ("ServiceUnavailable", "Throttling", "TooManyRequests", "ModelNotReady", "InternalServer")
 
 
-def safe_review(agent: Agent, fund_id: str, retries: int = 2) -> Verdict:
+def safe_review(agent: Agent, fund_id: str, retries: int = 2, note: str = "", traced: bool = False):
     """Never let one reviewer crash the pipeline: brief outages are retried, other errors become cannot_assess.
-    Expired logins stop the run."""
+    Expired logins stop the run. traced=True returns (verdict, tool_values)."""
     for attempt in range(retries + 1):
         try:
-            return review(agent, fund_id)
+            return review_traced(agent, fund_id, note) if traced else review(agent, fund_id, note)
         except Exception as e:
             if is_auth_error(e):
                 raise LoginExpired("AWS login expired. Run: aws login --profile fundsentinel, then re-run "
@@ -85,5 +105,6 @@ def safe_review(agent: Agent, fund_id: str, retries: int = 2) -> Verdict:
             if transient and attempt < retries:
                 time.sleep(5 * (attempt + 1))
                 continue
-            return Verdict(reviewer=agent.name, fund_id=fund_id, verdict="cannot_assess", evidence=[], confidence=0,
-                           reason=f"The {agent.name} reviewer could not run ({type(e).__name__}); needs a re-run.")
+            v = Verdict(reviewer=agent.name, fund_id=fund_id, verdict="cannot_assess", evidence=[], confidence=0,
+                        reason=f"The {agent.name} reviewer could not run ({type(e).__name__}); needs a re-run.")
+            return (v, set()) if traced else v

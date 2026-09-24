@@ -12,7 +12,10 @@ CSV (any column names)
   → canonical records with field-level provenance
   → Quality: code detectors over the whole file + Quality agent report and inconsistency scan
   → SelfHeal agent: fix / flag / quarantine / dismiss (every fix re-checked by code); quarantined funds skip the committee
-  → 4 reviewers in parallel: Analyst · Compliance · Finance · Suitability   (each: code tools for facts + rules, AI writes the verdict with evidence)
+  → Supervisor (Claude Opus 5) routes 4 reviewers — Analyst · Compliance · Finance · Suitability — and sends one back on real
+    conflicting evidence (each reviewer: code tools for facts + rules, AI writes the verdict with evidence)
+  → Evidence checker: code verifies every cited value came from the reviewer's own tools; Opus checks the reasoning follows;
+    unproven verdicts are sent back, and a fund whose verdicts stay unproven is flagged, never decided
   → Decision owner: layer 1 fixed rules in code, layer 2 Claude Opus 5
   → S3 (clean data, provenance, evidence, reports) + Aurora Postgres record book
   → Streamlit dashboard

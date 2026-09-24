@@ -4,7 +4,7 @@ from strands import Agent, tool
 
 from .. import settings
 from ..mapping import Record
-from .common import build_reviewer, fact, history_years, unknown
+from .common import build_reviewer, fact, fund_flags, history_years, unknown
 
 ROLE = ("You are the Analyst on a mock fund-approval committee. Your only job is performance: returns, "
         "returns versus the category, length of track record, and whether the returns look believable.")
@@ -20,7 +20,7 @@ def build(records: dict[str, Record]) -> Agent:
         if rec is None:
             return unknown(fund_id)
         names = ["return_1y", "return_3y", "return_5y", "category_return_5y", "inception_date", "fund_age_years", "as_of_date"]
-        return {"fund_id": fund_id, "fund_name": rec.get("fund_name"), "category": rec.get("category"),
+        return {"fund_id": fund_id, "fund_flags": fund_flags(rec), "fund_name": rec.get("fund_name"), "category": rec.get("category"),
                 **{n: fact(rec, n) for n in names}}
 
     @tool

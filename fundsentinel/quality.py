@@ -98,6 +98,7 @@ def detect(df: pd.DataFrame, records: list[Record]) -> list[Issue]:
     def add(rec, rownum, fname, kind, detail, **kw):
         issues.append(Issue(f"Q{len(issues) + 1:04d}", rec.fund_id if rec else None, rownum, fname, kind, detail, **kw))
 
+    critical = set(settings.policy().get("data_quality", {}).get("quarantine_if_missing", ["fund_id", "expense_ratio"]))
     dup_rows = df.duplicated(keep="first").tolist()
     seen_ids: dict[str, int] = {}
     names: dict[str, set] = {}
@@ -129,17 +130,19 @@ def detect(df: pd.DataFrame, records: list[Record]) -> list[Issue]:
             fv = rec.fields.get(fname)
             if fv is None:
                 if ftype.get("required") and fname != "source_ref":
-                    add(rec, rownum, fname, "missing_required", f"{fname} is not in the file", action="quarantine",
+                    act = "quarantine" if fname in critical else "flag"
+                    add(rec, rownum, fname, "missing_required", f"{fname} is not in the file", action=act,
                         decided_by="rule", confidence=1.0, reason=f"Cannot check: {fname} missing.")
                 continue
             raw_empty = fv.raw is None or str(fv.raw).strip() == "" or fv.raw != fv.raw
             if fv.value is None and not raw_empty:
-                act = "quarantine" if ftype.get("required") else "flag"
+                act = "quarantine" if fname in critical else "flag"
                 add(rec, rownum, fname, "unreadable", f"{fname} value {fv.raw!r} could not be read", raw=fv.raw,
                     action=act, decided_by="rule", confidence=1.0,
                     reason=f"Unreadable {'required ' if act == 'quarantine' else ''}value.")
             elif fv.value is None and ftype.get("required"):
-                add(rec, rownum, fname, "missing_required", f"{fname} is empty", action="quarantine",
+                act = "quarantine" if fname in critical else "flag"
+                add(rec, rownum, fname, "missing_required", f"{fname} is empty", action=act,
                     decided_by="rule", confidence=1.0, reason=f"Cannot check: {fname} missing.")
             elif fv.value is not None and not _in_range(ftype, fv.value):
                 cands = []
@@ -182,8 +185,9 @@ def detect(df: pd.DataFrame, records: list[Record]) -> list[Issue]:
                 others = sorted(set(owners) - {fid})
                 add(rec, rownum, "fund_name", "shared_name",
                     f"Name '{name}' is also used by {len(others)} other identifier(s): {', '.join(others)[:120]}",
-                    raw=name, action="flag", decided_by="rule", confidence=0.9,
-                    reason="One share-class name should belong to one fund; identity is uncertain.")
+                    raw=name, action="flag", decided_by="rule", confidence=0.5,
+                    reason="A share-class name should belong to one fund, so at least one of these rows is probably "
+                           "mislabelled; this row may be the correct one.")
     return issues
 
 

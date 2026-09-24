@@ -4,7 +4,7 @@ from strands import Agent, tool
 
 from .. import settings
 from ..mapping import Record
-from .common import build_reviewer, fact, history_years, unknown
+from .common import build_reviewer, fact, fund_flags, history_years, unknown
 
 ROLE = ("You are the Compliance reviewer on a mock fund-approval committee. Your only job is hard policy rules: "
         "prohibited fund types, minimum fund size, minimum track record, and required data being present. "
@@ -22,7 +22,7 @@ def build(records: dict[str, Record]) -> Agent:
         if rec is None:
             return unknown(fund_id)
         names = ["fund_name", "category", "currency", "total_net_assets", "inception_date", "fund_age_years", "as_of_date"]
-        return {"fund_id": fund_id, **{n: fact(rec, n) for n in names},
+        return {"fund_id": fund_id, "fund_flags": fund_flags(rec), **{n: fact(rec, n) for n in names},
                 "missing_required_fields": [f for f in rules["required_fields"] if rec.get(f) is None]}
 
     @tool
