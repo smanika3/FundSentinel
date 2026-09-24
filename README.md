@@ -12,6 +12,8 @@ CSV (any column names)
   → canonical records with field-level provenance
   → Quality: code detectors over the whole file + Quality agent report and inconsistency scan
   → SelfHeal agent: fix / flag / quarantine / dismiss (every fix re-checked by code); quarantined funds skip the committee
+  → Transform: standard derived columns in code + agent-proposed columns (validated in code)
+  → Metadata agent: plain-English data dictionary for every column
   → Supervisor (Claude Opus 5) routes 4 reviewers — Analyst · Compliance · Finance · Suitability — and sends one back on real
     conflicting evidence (each reviewer: code tools for facts + rules, AI writes the verdict with evidence)
   → Evidence checker: code verifies every cited value came from the reviewer's own tools; Opus checks the reasoning follows;
