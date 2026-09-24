@@ -29,7 +29,9 @@ You receive four reviewer verdicts (analyst, compliance, finance, suitability). 
 - rejected: a reviewer failed on a policy rule.
 - flagged_for_review: reviewers could not assess key areas, or the evidence conflicts in a way you cannot resolve.
   This is only a label; the pipeline keeps moving.
-Base the decision only on the verdicts given. Write the reason so a non-expert understands it."""
+Base the decision only on the verdicts given. Write the reason so a non-expert understands it.
+The limits the reviewers cite come from FundSentinel's mock demo policy: call them "the mock policy's fee cap (0.75%)"
+and so on, never a firm's, TIAA's or a regulator's rule."""
 
 
 def layer1(fund_id: str, verdicts: list[Verdict], evidence_status: dict | None = None) -> Decision | None:

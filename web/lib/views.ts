@@ -61,6 +61,23 @@ export function fmt(field: string, v: unknown, ccy?: string): string {
   return Number.isInteger(n) ? n.toLocaleString("en-US") : String(Math.round(n * 10000) / 10000);
 }
 
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "2021-10-29" -> "29 Oct 2021"; anything else is returned as-is. */
+export function dateText(d?: string | null): string | null {
+  if (!d) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(d));
+  return m ? `${Number(m[3])} ${MONTHS[Number(m[2]) - 1]} ${m[1]}` : String(d);
+}
+
+/** One line for a run's data dates: "data as of 29 Oct 2021", or the range when funds differ. */
+function asOfSummary(dates: (string | null)[]): string | null {
+  const ds = Array.from(new Set(dates.filter(Boolean) as string[])).sort();
+  if (!ds.length) return null;
+  const missing = dates.length - dates.filter(Boolean).length;
+  const base = ds.length === 1 ? `data as of ${dateText(ds[0])}` : `data as of ${dateText(ds[0])} to ${dateText(ds[ds.length - 1])}`;
+  return missing ? `${base} (${missing} fund${missing === 1 ? "" : "s"} undated)` : base;
+}
+
 export function ruleText(rule?: string | null): string {
   if (!rule) return "—";
   const [key, raw] = rule.split("=");
@@ -173,7 +190,7 @@ export async function getRun(runId: string) {
   if (!meta) return null;
   const [decisions, verdicts, events] = await Promise.all([
     sql(`SELECT d.fund_id, f.fund_name, f.category, d.decision, d.decided_by, d.rule_applied, d.reason, d.conditions,
-                f.record->>'quarantine_reason' AS quarantine_reason
+                f.record->>'quarantine_reason' AS quarantine_reason, f.record->'fields'->'as_of_date'->>'value' AS as_of
          FROM decisions d JOIN funds f USING (run_id, fund_id) WHERE d.run_id = :r ORDER BY d.fund_id`, { r: runId }),
     sql(`SELECT fund_id, reviewer, verdict FROM verdicts WHERE run_id = :r`, { r: runId }),
     sql(`SELECT fund_id, actor, event, min(t) AS t0, max(t) AS t1, count(*) AS n FROM review_events
@@ -218,7 +235,7 @@ export async function getRun(runId: string) {
     id: meta.run_id, file: meta.source, funds: meta.funds ?? funds.length, seconds: Math.round(meta.seconds ?? 0),
     duration: `${Math.round(meta.seconds ?? 0)} s`, when: when(meta.updated_at),
     type: isRadar ? "update" : meta.redteam ? "redteam" : "review", mapping: mappingText(meta.mapping),
-    funds_: funds, sendbacks: { supervisor: supSends, evidence: evSends },
+    funds_: funds, sendbacks: { supervisor: supSends, evidence: evSends }, asOf: asOfSummary(decisions.map((d) => d.as_of)),
     update: isRadar ? await updateView(runId, meta.baseline_run_id, funds) : null,
     redteam: meta.redteam ? redteamView(json(meta.redteam, {} as any)) : null,
   };
@@ -297,7 +314,7 @@ export async function getFund(runId: string, fundId: string) {
     sql(`SELECT decision, decided_by, rule_applied, reason, conditions FROM decisions WHERE run_id = :r AND fund_id = :f`, { r: runId, f: fundId }),
     sql(`SELECT reviewer, verdict, reason, evidence, confidence, evidence_ok FROM verdicts WHERE run_id = :r AND fund_id = :f`, { r: runId, f: fundId }),
     sql(`SELECT seq, actor, event, reviewer, detail, t FROM review_events WHERE run_id = :r AND fund_id = :f ORDER BY seq`, { r: runId, f: fundId }),
-    sql(`SELECT source, baseline_run_id FROM runs WHERE run_id = :r`, { r: runId }),
+    sql(`SELECT source, baseline_run_id, updated_at FROM runs WHERE run_id = :r`, { r: runId }),
   ]);
   if (!fund || !dec) return null;
   const rec = json<any>(fund.record, { fields: {}, flags: [] });
@@ -468,6 +485,7 @@ export async function getFund(runId: string, fundId: string) {
     changes: radar?.changes?.length ? radar.changes : null,
     reopened: radar?.reopened ?? [], carried: radar?.carried ?? [], stale: radar?.stale ?? [],
     compareWith: radar?.compare ?? null,
+    asOf: dateText(fields.as_of_date?.value), decidedOn: when(meta?.updated_at),
     reviewers, timeline, provenance, sources,
     fund: { ticker: fundId, name: fields.fund_name?.value ?? fundId, category: fields.category?.value ?? null, outcome },
   };

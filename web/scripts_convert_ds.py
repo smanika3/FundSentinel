@@ -17,6 +17,10 @@ body = re.sub(r"const __ds_ns = \(window\.[A-Za-z0-9_]+ = window\.[A-Za-z0-9_]+ 
 body = body.rstrip()
 assert body.endswith("})();"), body[-40:]
 body = body[: -len("})();")]                                   # drop the outer IIFE closer
+# App additions the design did not include: a Policy page in the sidebar.
+nav_data = "  id: 'data',\n  icon: 'database',\n  label: 'Data'\n}];"
+assert nav_data in body, "sidebar NAV changed in the design export"
+body = body.replace(nav_data, nav_data[:-2] + ", {\n  id: 'policy',\n  icon: 'shield-check',\n  label: 'Policy'\n}];", 1)
 exports = "\n".join(f"export const {n} = __ds_ns.{n};" for n in names)
 out = ("'use client';\n/* Generated from design/_ds_bundle.js by web/scripts_convert_ds.py. Do not edit by hand. */\n"
        "/* eslint-disable */\nimport * as React from 'react';\n\n" + body +

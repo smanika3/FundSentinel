@@ -75,7 +75,12 @@ export default function FundScreen({ run, route, go, detail }) {
         {d.conditions && d.conditions.length ? (
           <div><div style={{ font: '600 var(--text-small)/1.3 var(--font-sans)', marginBottom: 6 }}>Conditions</div><ul style={{ margin: 0, paddingLeft: 18 }}>{d.conditions.map((c) => <li key={c}>{c}</li>)}</ul></div>
         ) : null}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, font: 'var(--type-small)', color: 'var(--text-2)' }}>Decided by: <KindBadge kind={d.decidedBy.kind} /> <span>{d.decidedBy.text}</span></div>
+        <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, font: 'var(--type-small)', color: 'var(--text-2)' }}>
+          Decided by: <KindBadge kind={d.decidedBy.kind} /> <span>{d.decidedBy.text}</span>
+          <span style={{ color: 'var(--text-3)' }}>·</span><span>Based on data as of {d.asOf || 'an unknown date (not in the file)'}</span>
+          {d.decidedOn ? <><span style={{ color: 'var(--text-3)' }}>·</span><span>Decided {d.decidedOn}</span></> : null}
+          <span style={{ color: 'var(--text-3)' }}>·</span><a href="/policy" style={{ color: 'inherit' }}>Rules used</a>
+        </div>
       </section>
 
       {d.warnings ? <Callout kind="warning" title="Data warnings" items={d.warnings} style={{ marginTop: 16 }} /> : null}

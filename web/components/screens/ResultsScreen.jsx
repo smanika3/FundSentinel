@@ -211,7 +211,7 @@ export default function ResultsScreen({ run, go }) {
   return (
     <div>
       <PageHeader title="Results" subtitle="What did the committee decide?"
-        meta={<>{run.funds} funds · {run.seconds} seconds · file: <Mono chip strong={false}>{run.file}</Mono> · {run.mapping}</>} />
+        meta={<>{run.funds} funds · {run.seconds} seconds · file: <Mono chip strong={false}>{run.file}</Mono> · {run.mapping}{run.asOf ? ' · ' + run.asOf : ''} · <a href="/policy" style={{ color: 'inherit' }}>rules used</a></>} />
       {run.type === 'update' ? <UpdateSection run={run} go={go} openSheet={setSheet} /> : null}
       {run.type === 'redteam' ? <RedTeamSection run={run} go={go} openSheet={setSheet} /> : null}
       <Block>

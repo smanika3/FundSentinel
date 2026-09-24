@@ -1770,6 +1770,10 @@ const NAV = [{
   id: 'data',
   icon: 'database',
   label: 'Data'
+}, {
+  id: 'policy',
+  icon: 'shield-check',
+  label: 'Policy'
 }];
 function Wordmark({
   collapsed = false

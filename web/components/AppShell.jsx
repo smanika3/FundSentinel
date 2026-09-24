@@ -6,6 +6,7 @@ import { Sidebar, Button, Callout, Mono } from './ds';
 function parse(pathname) {
   const p = pathname.split('/').filter(Boolean);
   if (p[0] === 'run') return { page: 'run' };
+  if (p[0] === 'policy') return { page: 'policy' };
   if (p[0] === 'runs' && p[1]) {
     const run = decodeURIComponent(p[1]);
     if (p[2] === 'funds') return { page: 'fund', run, ticker: p[3] ? decodeURIComponent(p[3]) : null };
@@ -57,6 +58,7 @@ export default function AppShell({ runs, error, children }) {
   const runId = route.run || (runs.some((r) => r.id === lastRun) ? lastRun : runs[0] && runs[0].id);
   const nav = (id) => {
     if (id === 'run') router.push('/run');
+    else if (id === 'policy') router.push('/policy');
     else if (!runId) router.push('/run');
     else if (id === 'results') router.push('/runs/' + encodeURIComponent(runId));
     else if (id === 'fund') router.push('/runs/' + encodeURIComponent(runId) + '/funds' + (route.page === 'fund' && route.ticker ? '/' + encodeURIComponent(route.ticker) : ''));
