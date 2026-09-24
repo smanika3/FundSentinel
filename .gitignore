@@ -21,3 +21,6 @@ __pycache__/
 node_modules/
 .DS_Store
 .streamlit/secrets.toml
+
+# Planning reference only
+fundsentinel_system_architecture_v2.png

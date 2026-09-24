@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "description": "FundSentinel canonical fund schema. Every source file is mapped onto these fields. Units are fixed: all rates are fractions (0.0075 = 0.75%), money is USD-equivalent or the source currency noted in `currency`.",
+  "fields": {
+    "fund_id":                {"type": "string", "required": true,  "description": "Stable identifier for the fund within its source (ticker, scheme code, or generated)."},
+    "fund_name":              {"type": "string", "required": true,  "description": "Full legal or display name of the fund."},
+    "ticker":                 {"type": "string", "required": false, "description": "Exchange ticker symbol, if the fund has one."},
+    "fund_family":            {"type": "string", "required": false, "description": "Fund company / asset manager (AMC)."},
+    "category":               {"type": "string", "required": true,  "description": "Peer-group category, e.g. Large Growth, Intermediate Core Bond."},
+    "benchmark":              {"type": "string", "required": false, "description": "Index the fund is measured against."},
+    "currency":               {"type": "string", "required": false, "description": "ISO currency code of prices and assets."},
+    "expense_ratio":          {"type": "rate",   "required": true,  "min": 0.0, "max": 0.05, "description": "Annual net expense ratio as a fraction (0.0075 = 0.75%)."},
+    "category_expense_ratio": {"type": "rate",   "required": false, "min": 0.0, "max": 0.05, "description": "Average expense ratio of the fund's category, as a fraction."},
+    "risk_score":             {"type": "int",    "required": true,  "min": 1, "max": 5, "description": "Risk on a 1 (lowest) to 5 (highest) scale. Other scales are rescaled to 1-5."},
+    "return_1y":              {"type": "rate",   "required": false, "min": -1.0, "max": 5.0, "description": "Trailing 1-year total return, fraction."},
+    "return_3y":              {"type": "rate",   "required": false, "min": -1.0, "max": 2.0, "description": "Trailing 3-year annualised return, fraction."},
+    "return_5y":              {"type": "rate",   "required": false, "min": -1.0, "max": 2.0, "description": "Trailing 5-year annualised return, fraction."},
+    "category_return_5y":     {"type": "rate",   "required": false, "min": -1.0, "max": 2.0, "description": "Category average 5-year annualised return, fraction."},
+    "total_net_assets":       {"type": "number", "required": false, "min": 0, "description": "Fund size in the fund's currency."},
+    "inception_date":         {"type": "date",   "required": false, "description": "Date the fund launched (ISO 8601)."},
+    "as_of_date":             {"type": "date",   "required": true,  "description": "Date the fund's figures are valid for (ISO 8601)."},
+    "source_ref":             {"type": "string", "required": true,  "description": "Where the record came from: source file + row number."}
+  }
+}

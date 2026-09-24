@@ -32,7 +32,7 @@ aws configure set region us-east-1 --profile fundsentinel
 aws login --region us-east-1 --profile fundsentinel
 ```
 
-A browser opens. If it asks, sign in through the SSO portal first and choose `ExternalHackathonUser`, then approve. Credentials last 12 hours and renew automatically for up to 90 days; when commands start failing, run `aws login --profile fundsentinel` again.
+A browser opens. If it asks, sign in through the SSO portal first and choose `ExternalHackathonUser`, then approve. Credentials renew automatically only while your SSO portal session is alive (a few hours in practice, not the 90 days AWS advertises). When commands fail with "session has expired" or `LoginRefreshRequired`, run `aws login --profile fundsentinel` again.
 
 Check it worked:
 

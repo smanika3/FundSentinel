@@ -1,0 +1,22 @@
+{
+  "source": "yahoo_us/MutualFunds.csv",
+  "author": "hand-written reference (answer key for scoring the Profiler agent)",
+  "fields": {
+    "fund_id":                {"column": "fund_symbol", "confidence": 1.0},
+    "ticker":                 {"column": "fund_symbol", "confidence": 1.0},
+    "fund_name":              {"column": "fund_long_name", "confidence": 1.0},
+    "fund_family":            {"column": "fund_family", "confidence": 1.0},
+    "category":               {"column": "fund_category", "confidence": 1.0},
+    "currency":               {"column": "currency", "confidence": 1.0},
+    "expense_ratio":          {"column": "fund_annual_report_net_expense_ratio", "unit": "fraction", "confidence": 1.0},
+    "category_expense_ratio": {"column": "category_annual_report_net_expense_ratio", "unit": "fraction", "confidence": 1.0},
+    "risk_score":             {"column": "morningstar_risk_rating", "scale": [1, 5], "confidence": 1.0},
+    "return_1y":              {"column": "fund_return_1year", "unit": "fraction", "confidence": 1.0},
+    "return_3y":              {"column": "fund_return_3years", "unit": "fraction", "confidence": 1.0},
+    "return_5y":              {"column": "fund_return_5years", "unit": "fraction", "confidence": 1.0},
+    "category_return_5y":     {"column": "category_return_5years", "unit": "fraction", "confidence": 1.0},
+    "total_net_assets":       {"column": "total_net_assets", "confidence": 1.0},
+    "inception_date":         {"column": "inception_date", "confidence": 1.0},
+    "as_of_date":             {"column": "returns_as_of_date", "confidence": 1.0}
+  }
+}

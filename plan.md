@@ -45,11 +45,12 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 
 ## Phase 1 — Basic pipeline end to end (today → Thu morning) ⭐ most important
 
-- [ ] `config/schema.json` — canonical fields: fund_id, fund_name, ticker, category, benchmark, expense_ratio, risk_score, returns, as_of_date, source_ref
-- [ ] `config/policy.json` — mock rules (max fee 0.75%, etc.)
-- [ ] Code tools (plain Python, no AI): unit/date normalisation, mapping validator (type/unit/range), fee/return calculators, S3 + RDS writers with run IDs
+- [x] `config/schema.json` — canonical fields: fund_id, fund_name, ticker, category, benchmark, expense_ratio, risk_score, returns, as_of_date, source_ref
+- [x] `config/policy.json` — mock rules (max fee 0.75%, etc.)
+- [x] Code tools: unit/date normalisation (`fundsentinel/normalise.py`), mapping validator + apply with provenance (`fundsentinel/mapping.py`), reference Yahoo mapping (`config/mappings/`)
+- [ ] S3 + RDS writers with run IDs
 - [ ] AgentCore project: `npx @aws/agentcore create` (Python, Direct Code Deploy, Strands, Bedrock, no memory)
-- [ ] First agent: **Finance reviewer** with tools + JSON verdict form — prove the pattern works
+- [x] First agent: **Finance reviewer** (`fundsentinel/agents/finance.py`, verified live: pass / fail / concern / cannot_assess) with tools + JSON verdict form — prove the pattern works
 - [ ] Stage 1 agents: Profiler → Quality → Transform → Metadata (SelfHeal can start as a stub)
 - [ ] Other reviewers: Analyst, Compliance, Suitability
 - [ ] Simple orchestrator + Decision owner (Layer 1 rules in code, Layer 2 AI)

@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "disclaimer": "Mock approval policy for the FundSentinel hackathon demo. Internal decision support only; not investment advice and not any real firm's policy.",
+  "finance": {
+    "max_expense_ratio": 0.0075,
+    "max_premium_over_category": 0.25,
+    "note": "Fail above max_expense_ratio. Concern if the fee is more than 25% above the category average."
+  },
+  "analyst": {
+    "min_history_years": 3,
+    "max_underperformance_vs_category_5y": 0.02,
+    "implausible_return_1y": 1.0,
+    "note": "Concern if 5y return trails the category by more than 2 points. A 1y return above 100% is treated as a data problem, not good performance."
+  },
+  "compliance": {
+    "prohibited_category_keywords": ["leveraged", "inverse", "trading--", "bear market"],
+    "min_total_net_assets": 50000000,
+    "min_track_record_years": 1,
+    "required_fields": ["fund_id", "fund_name", "category", "expense_ratio", "risk_score", "as_of_date"],
+    "note": "Any compliance fail means the fund is rejected (Decision owner layer 1)."
+  },
+  "suitability": {
+    "general_investor_max_risk": 4,
+    "note": "Risk 5 funds can only be approved with conditions (restricted to experienced investors)."
+  }
+}
