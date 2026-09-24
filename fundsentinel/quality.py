@@ -209,6 +209,47 @@ def validate_fix(issue: Issue, value) -> str | None:
     return None
 
 
+_SEVERITY = {"ok": 0, "concern": 1, "fail": 2}
+
+
+def policy_standing(field: str, value, rec: Record) -> str | None:
+    """How a value stands against the policy and plausibility limits: 'fail', 'concern', 'ok', or None if not checked."""
+    if value is None:
+        return None
+    pol = settings.policy()
+    if field == "expense_ratio":
+        return "fail" if value > pol["finance"]["max_expense_ratio"] else "ok"
+    if field == "total_net_assets":
+        rate = settings.fx().get(rec.get("currency") or "USD")
+        if rate is None:
+            return None
+        return "fail" if value * rate < pol["compliance"]["min_total_net_assets_usd"] else "ok"
+    if field == "risk_score":
+        return "concern" if value > pol["suitability"]["general_investor_max_risk"] else "ok"
+    if field == "return_1y":
+        return "fail" if value > pol["analyst"]["implausible_return_1y"] else "ok"
+    if field in IMPLAUSIBLE:
+        return "concern" if value > IMPLAUSIBLE[field][1] else "ok"
+    if field == "category":
+        banned = pol["compliance"]["prohibited_category_keywords"]
+        return "fail" if any(k in str(value).lower() for k in banned) else "ok"
+    return None
+
+
+def repairs_toward_approval(iss: Issue, rec: Record, new_value) -> str | None:
+    """Guardrail: SelfHeal may never change a value so that it moves from failing (or concerning) a policy check to
+    passing it. Returns the reason if the change is blocked."""
+    fv = rec.fields.get(iss.field)
+    if fv is None:
+        return None
+    new = new_value if iss.kind == "category_typo" else float(new_value)
+    before, after = policy_standing(iss.field, fv.value, rec), policy_standing(iss.field, new, rec)
+    if before is None or after is None or _SEVERITY[after] >= _SEVERITY[before]:
+        return None
+    return (f"changing {iss.field} from {fv.value!r} ({before}) to {new!r} ({after}) would make the fund look better "
+            f"under the policy, which SelfHeal is never allowed to do; the original value is kept and flagged")
+
+
 def apply(records: list[Record], issues: list[Issue]) -> list[Record]:
     """Apply decided actions to records. Returns the records that remain (drops removed)."""
     by_row = {i + 2: r for i, r in enumerate(records)}
@@ -228,7 +269,12 @@ def apply(records: list[Record], issues: list[Issue]) -> list[Record]:
                 iss.reason = f"Fix proposed without a value; flagged instead. {iss.reason or ''}".strip()
         if iss.action == "fix" and iss.new_value is not None:
             err = validate_fix(iss, iss.new_value)
-            if err:
+            blocked = None if err else repairs_toward_approval(iss, rec, iss.new_value)
+            if blocked:
+                iss.action, iss.decided_by = "flag", "guardrail"
+                iss.reason = f"Guardrail: {blocked}. SelfHeal had suggested {iss.new_value!r}: {iss.reason or ''}".strip()
+                iss.new_value = None
+            elif err:
                 iss.action, iss.decided_by = "flag", "guardrail"
                 iss.reason = f"Proposed fix rejected by code ({err}); flagged instead. {iss.reason or ''}".strip()
             else:
@@ -238,6 +284,12 @@ def apply(records: list[Record], issues: list[Issue]) -> list[Record]:
                 fv.transform = f"SelfHeal fix {old!r} -> {fv.value!r} ({iss.confidence:.0%} sure): {iss.reason}"
                 continue
         if iss.action == "flag":
+            if iss.new_value is not None and iss.field in rec.fields and not validate_fix(iss, iss.new_value):
+                blocked = repairs_toward_approval(iss, rec, iss.new_value)
+                if blocked:
+                    iss.decided_by = "guardrail"
+                    iss.reason = f"Guardrail: {blocked}. SelfHeal's best guess was {iss.new_value!r}: {iss.reason or ''}".strip()
+                    iss.new_value = None
             if iss.new_value is not None and iss.field in rec.fields and not validate_fix(iss, iss.new_value):
                 fv = rec.fields[iss.field]
                 old = fv.value
