@@ -52,8 +52,9 @@ That leaves roughly two working days. Rule: the **basic pipeline running end to 
 - [ ] AgentCore project: `npx @aws/agentcore create` (Python, Direct Code Deploy, Strands, Bedrock, no memory)
 - [x] First agent: **Finance reviewer** (`fundsentinel/agents/finance.py`, verified live: pass / fail / concern / cannot_assess) with tools + JSON verdict form — prove the pattern works
 - [ ] Stage 1 agents: Profiler → Quality → Transform → Metadata (SelfHeal can start as a stub)
-- [ ] Other reviewers: Analyst, Compliance, Suitability
-- [ ] Simple orchestrator + Decision owner (Layer 1 rules in code, Layer 2 AI)
+- [x] Other reviewers: Analyst, Compliance (Opus), Suitability
+- [x] Simple orchestrator (`fundsentinel/pipeline.py`, reviewers in parallel) + Decision owner (Layer 1 rules in code, Layer 2 Opus)
+      First run (8 funds, 156 s): all 5 decision types produced. Decision owner caught a **real Kaggle data error**: VFIAX row carries the name "BNY Mellon Technology Growth Fund Class A". Use in the demo; confirm with the SEC ticker file.
 - [ ] Results saved to S3 + RDS; basic Streamlit dashboard reading RDS
 - [ ] **Milestone:** one command, CSV → decisions, no manual fixes. Push to CodeCommit. **Demo this at the code review.**
 

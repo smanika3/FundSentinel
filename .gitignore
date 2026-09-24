@@ -24,3 +24,6 @@ node_modules/
 
 # Planning reference only
 fundsentinel_system_architecture_v2.png
+
+# Local pipeline outputs (the durable copy goes to S3/RDS)
+runs/
