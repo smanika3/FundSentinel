@@ -2,6 +2,8 @@
 
 import re
 from datetime import date, datetime
+from pathlib import Path
+import pandas as pd
 
 _NUM = r"[-+]?\d*\.?\d+"
 
@@ -103,3 +105,33 @@ def years_between(start_iso: str | None, end_iso: str | None) -> float | None:
     if not start_iso or not end_iso:
         return None
     return (date.fromisoformat(end_iso) - date.fromisoformat(start_iso)).days / 365.25
+
+
+def load_csv(source: str | Path, **kwargs) -> pd.DataFrame:
+    """Read a CSV file with automatic encoding (UTF-8, Latin-1, CP1252) and delimiter detection."""
+    p = Path(source)
+    with open(p, "rb") as f:
+        sample = f.read(16384)
+
+    encoding = "utf-8"
+    text = ""
+    for enc in ("utf-8", "utf-8-sig", "latin-1", "cp1252"):
+        try:
+            text = sample.decode(enc)
+            encoding = enc
+            break
+        except UnicodeDecodeError:
+            continue
+
+    sep = ","
+    try:
+        first_line = text.splitlines()[0] if text else ""
+        counts = {d: first_line.count(d) for d in (";", ",", "\t", "|")}
+        best = max(counts, key=counts.get)
+        if counts[best] > 0:
+            sep = best
+    except Exception:
+        pass
+
+    return pd.read_csv(p, encoding=encoding, sep=sep, low_memory=False, **kwargs)
+

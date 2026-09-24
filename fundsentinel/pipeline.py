@@ -19,7 +19,7 @@ import pandas as pd
 
 from . import mapping as mp
 from . import settings
-from . import committee, profile, quality, store, transform
+from . import committee, normalise, profile, quality, store, transform
 from .agents import analyst, common, compliance, decision, finance, profiler, selfheal, suitability
 from .agents import metadata as metadata_agent
 from .agents import quality as quality_agent
@@ -88,7 +88,7 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
         run_id: str | None = None, out_dir: str = "runs", persist: bool = True, context: str = "",
         stage1_only: bool = False, use_supervisor: bool = True, workers: int = 3) -> dict:
     started = time.time()
-    df = pd.read_csv(source, low_memory=False)
+    df = normalise.load_csv(source)
     source_name = "/".join(Path(source).parts[-2:])
     profiler_rounds = None
     if mapping_path:

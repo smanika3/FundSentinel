@@ -13,7 +13,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 from .. import mapping as mp
-from .. import profile, settings
+from .. import normalise, profile, settings
 
 MAX_ROUNDS = 3
 
@@ -135,7 +135,7 @@ if __name__ == "__main__":
     ap.add_argument("--answer-key", help="hand-written mapping to score against")
     ap.add_argument("--context", default="")
     a = ap.parse_args()
-    df = pd.read_csv(a.source, low_memory=False)
+    df = normalise.load_csv(a.source)
     res = propose(df, "/".join(a.source.split("/")[-2:]), a.context)
     for r in res["rounds"]:
         print(f"round {r['round']}: {r['accepted']}/{r['proposed']} accepted; rejected: {r['rejected']}")

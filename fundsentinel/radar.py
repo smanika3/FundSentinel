@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from . import committee, quality, settings, store, transform
+from . import committee, normalise, quality, settings, store, transform
 from . import mapping as mp
 from .agents import analyst, common, compliance, decision, finance, suitability
 from .agents import materiality as materiality_agent
@@ -130,7 +130,7 @@ def run(baseline_id: str, source: str, fund_ids: list[str] | None = None, persis
         mapping = json.loads((settings.ROOT / mapping_path).read_text()) if not Path(mapping_path).is_absolute() \
             else json.loads(Path(mapping_path).read_text())
 
-    df = pd.read_csv(source, low_memory=False)
+    df = normalise.load_csv(source)
     source_name = "/".join(Path(source).parts[-2:])
     checks = mp.validate_mapping(mapping, df)
     all_records = mp.apply_mapping(mapping, df, checks, source_name)
