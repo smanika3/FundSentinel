@@ -98,7 +98,7 @@ def score(run_dir: str):
         raise SystemExit(f"{run_dir} is not a run of the current {expected_source} (the answer key's funds are "
                          f"missing from it). Re-run the pipeline on the current file, then score that run.")
     dropped = {i["fund_id"] for i in summary.get("quality_issues", []) if i["action"] == "drop"}
-    caught, lines = 0, []
+    caught, lines, rows = 0, [], []
     for k in key:
         r = results.get(k["fund_id"])
         outcome = "dropped" if k["fund_id"] in dropped and not r else (r["decision"]["decision"] if r else "not reviewed")
@@ -117,14 +117,22 @@ def score(run_dir: str):
         verdict = f"({label})" if ok else ("(MISSED: rejected for another reason)" if outcome in k["caught_if"] else "(MISSED)")
         lines.append(f"{'✓' if ok else '✗'} {k['fund_id']:6s} {k['trick']:32s} -> {outcome:26s} "
                      f"{verdict}  {', '.join(how)[:110]}")
+        rows.append({"fund_id": k["fund_id"], "trick": k["trick"], "benign": k["benign"], "disguise": k["disguise"],
+                     "changes": k["changes"], "outcome": outcome,
+                     "result": ("handled" if k["benign"] else "caught") if ok else
+                               ("missed_other_reason" if outcome in k["caught_if"] else "missed"),
+                     "caught_by": how, "decision_reason": (r or {}).get("decision", {}).get("reason")})
     real = [f for f in results if f not in {k["fund_id"] for k in key}]
     fp = [f for f in real if results[f]["decision"]["decision"] in ("rejected", "quarantined")]
     print(f"RedTeam score: caught {caught} of {len(key)} planted tricks ({caught / max(len(key), 1):.0%})")
     print(f"Real funds wrongly rejected or quarantined: {len(fp)} of {len(real)}"
           + (f" ({', '.join(fp)})" if fp else ""))
     print("\n".join(lines))
+    genuine = [{"fund_id": f, "outcome": results[f]["decision"]["decision"],
+                "reason": results[f]["decision"]["reason"]} for f in real]
     out = {"caught": caught, "planted": len(key), "false_positives": fp, "real_funds": len(real),
-           "detail": [l for l in lines]}
+           "sent_to_person": [g["fund_id"] for g in genuine if g["outcome"] in ("flagged_for_review", "sent_back")],
+           "detail": lines, "rows": rows, "genuine": genuine}
     (Path(run_dir) / "redteam_score.json").write_text(json.dumps(out, indent=2))
     from fundsentinel import store
     store.init_db()

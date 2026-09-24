@@ -95,14 +95,63 @@ if baseline_id:
             st.markdown("#### Evidence marked stale")
             st.dataframe(stale, width="stretch", hide_index=True)
 
+TRICK_NAMES = {
+    "hidden_high_fee": "Hidden high fee", "fee_as_bps_text": "Fee written as '60 bps' (harmless)",
+    "fake_returns": "Too-good-to-be-true returns", "leveraged_disguised": "Leveraged fund in disguise",
+    "low_risk_label": "Aggressive fund labelled low risk", "tiny_fund": "Fund far below minimum size",
+    "too_new": "Fund launched weeks ago", "wrong_ticker": "Ticker that doesn't exist",
+    "clone_fund": "Copy of another fund", "cheap_vs_cap_expensive_vs_peers": "Fee just under the cap, far above peers",
+    "category_mismatch": "Name contradicts category", "missing_fee": "Fee left blank",
+    "stale_data": "Data two years out of date"}
+RESULT_LABEL = {"caught": "✅ Caught", "handled": "✅ Read correctly", "missed": "❌ Missed",
+                "missed_other_reason": "❌ Missed (rejected for another reason)"}
+
 if redteam:
     with tabs["RedTeam scorecard"]:
-        c1, c2 = st.columns(2)
+        rows = redteam.get("rows")
+        missed = [r for r in rows if r["result"].startswith("missed")] if rows else []
+        c1, c2, c3, c4 = st.columns(4)
         c1.metric("Tricks caught", f"{redteam['caught']} of {redteam['planted']}")
-        c2.metric("Real funds wrongly rejected", f"{len(redteam['false_positives'])} of {redteam['real_funds']}")
-        st.caption("What counts as caught is fixed in config/redteam.json, not decided by the agents. Misses are shown.")
-        for line in redteam["detail"]:
-            st.markdown(("✅ " if line.startswith("✓") else "❌ ") + line[1:].strip())
+        c2.metric("Tricks missed", len(missed) if rows else redteam["planted"] - redteam["caught"])
+        c3.metric("Genuine funds wrongly rejected", f"{len(redteam['false_positives'])} of {redteam['real_funds']}")
+        if "sent_to_person" in redteam:
+            c4.metric("Genuine funds sent to a person", f"{len(redteam['sent_to_person'])} of {redteam['real_funds']}")
+        with st.expander("How this test works", expanded=False):
+            st.markdown(
+                "- The **RedTeam agent** was given the mock policy and a list of trick types, and designed a realistic "
+                "disguise for each by editing a copy of a genuine fund.\n"
+                "- The genuine funds used (and copied) pass **every** policy rule on their own, so a trick fund can only be "
+                "rejected because of its trick, and a rejected genuine fund is a real false alarm.\n"
+                "- What counts as *caught* is fixed in `config/redteam.json`, not decided by any agent. A trick only counts "
+                "if the outcome is right **and** it was caught for the right reason; otherwise it shows as "
+                "*missed (rejected for another reason)*.\n"
+                "- One trick is **harmless** (a normal fee written as '60 bps'): the system must read it correctly, not punish it.\n"
+                "- One trick (**data two years out of date**) has no rule in FundSentinel, so a miss there is expected and shown.")
+        if rows:
+            table = pd.DataFrame([{
+                "result": RESULT_LABEL.get(r["result"], r["result"]),
+                "trick": TRICK_NAMES.get(r["trick"], r["trick"]),
+                "fund": r["fund_id"],
+                "outcome": DECISION_LABEL.get(r["outcome"], r["outcome"]),
+                "what caught it": ", ".join(r["caught_by"]) or "nothing",
+                "how the RedTeam agent disguised it": r["disguise"],
+            } for r in rows])
+            st.markdown("#### Every planted trick")
+            st.dataframe(table, width="stretch", hide_index=True)
+            with st.expander("What the RedTeam agent changed in each fund"):
+                for r in rows:
+                    st.markdown(f"**{r['fund_id']}** · {TRICK_NAMES.get(r['trick'], r['trick'])}: "
+                                + ", ".join(f"`{k}` → `{v}`" for k, v in (r.get("changes") or {}).items()))
+        else:
+            for line in redteam["detail"]:
+                st.markdown(("✅ " if line.startswith("✓") else "❌ ") + line[1:].strip())
+        if redteam.get("genuine"):
+            st.markdown("#### Genuine funds (these pass every rule, so anything but approval is a false alarm)")
+            st.dataframe(pd.DataFrame([{"fund": g["fund_id"],
+                                        "outcome": DECISION_LABEL.get(g["outcome"], g["outcome"]),
+                                        "reason": g["reason"]} for g in redteam["genuine"]]),
+                         width="stretch", hide_index=True)
+        st.caption("Open any fund in the Fund story tab to see its full review.")
 
 with tab_decisions:
     counts = decisions.decision.value_counts()
