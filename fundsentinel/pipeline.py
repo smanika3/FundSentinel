@@ -18,11 +18,70 @@ from pathlib import Path
 import pandas as pd
 
 from . import mapping as mp
-from . import committee, quality, store
+from . import settings
+from . import committee, profile, quality, store, transform
 from .agents import analyst, common, compliance, decision, finance, profiler, selfheal, suitability
+from .agents import metadata as metadata_agent
 from .agents import quality as quality_agent
+from .agents import transform as transform_agent
 
 REVIEWERS = {"analyst": analyst, "compliance": compliance, "finance": finance, "suitability": suitability}
+
+
+def _column_facts(mapping: dict, records: list, transform_info: dict) -> list[dict]:
+    """Facts about every column, computed in code, for the Metadata agent and the data dictionary."""
+    schema = settings.schema()
+    derived = {d["name"]: d for d in transform_info["standard"] + [s for s in transform_info["suggested"] if s.get("accepted")]}
+    names = [n for n in schema if any(n in r.fields for r in records)] + list(derived)
+    facts = []
+    for n in names:
+        vals = [r.fields[n].value for r in records if n in r.fields]
+        present = [v for v in vals if v is not None]
+        notes = pd.Series([r.fields[n].transform for r in records if n in r.fields and r.fields[n].transform]).value_counts()
+        spec = mapping["fields"].get(n, {})
+        facts.append({
+            "name": n, "kind": "derived" if n in derived else "canonical",
+            "source_column": spec.get("column") or (("constant " + str(spec["constant"])) if "constant" in spec else None)
+                             or derived.get(n, {}).get("column"),
+            "how": derived[n].get("formula") if n in derived else (notes.index[0] if len(notes) else "copied as-is"),
+            "schema_description": schema.get(n, {}).get("description") or derived.get(n, {}).get("description"),
+            "coverage": round(len(present) / max(len(records), 1), 3),
+            "examples": [str(v) for v in pd.Series(present, dtype=object).drop_duplicates().head(3)],
+            "flagged_records": sum(1 for r in records for f in r.flags if f.get("field") == n),
+        })
+    return facts
+
+
+def stage1_transform_and_metadata(df, mapping, kept, source_name, context, stats, qreport):
+    standard = transform.add_standard(kept)
+    used = {spec.get("column") for spec in mapping["fields"].values()}
+    unused = [c for c in df.columns if c not in used]
+    suggested = []
+    try:
+        prof_text = profile.as_text(profile.profile_columns(df[unused], samples=3)) if unused else ""
+        ideas = transform_agent.suggest(sorted(settings.schema()), [d["name"] for d in standard], prof_text)
+        suggested = transform.apply_suggestions(ideas, kept, df)
+    except Exception as e:
+        if common.is_auth_error(e):
+            raise common.LoginExpired("AWS login expired. Run: aws login --profile fundsentinel") from e
+        suggested = [{"name": "(transform agent)", "accepted": False, "reason": f"{type(e).__name__}"}]
+    info = {"standard": standard, "suggested": suggested}
+    print(f"Transform: {len(standard)} standard columns; agent proposed {len(suggested)}, "
+          f"accepted {sum(1 for x in suggested if x.get('accepted'))}")
+    facts = _column_facts(mapping, kept, info)
+    try:
+        doc = metadata_agent.document(source_name, context, facts,
+                                      (qreport or {}).get("summary") or json.dumps(stats, default=str))
+        docs = {c["name"]: c for c in doc["columns"]}
+        dictionary = {"dataset_description": doc["dataset_description"],
+                      "columns": [{**f, **{k: docs.get(f["name"], {}).get(k) for k in ("description", "unit", "caveats")}}
+                                  for f in facts]}
+    except Exception as e:
+        if common.is_auth_error(e):
+            raise common.LoginExpired("AWS login expired. Run: aws login --profile fundsentinel") from e
+        dictionary = {"dataset_description": f"Metadata agent unavailable ({type(e).__name__}).", "columns": facts}
+    print(f"Metadata: documented {len(dictionary['columns'])} columns")
+    return info, dictionary
 
 
 def run(source: str, mapping_path: str | None = None, limit: int | None = None, fund_ids: list[str] | None = None,
@@ -77,6 +136,9 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
     print(f"Quality: {stats['issues']} issues in file, {len(healed)} sent to SelfHeal; in scope: "
           f"{sum(r.status == 'quarantined' for r in scope)} quarantined, {sum(r.status == 'flagged' for r in scope)} flagged")
 
+    # ---- Stage 1 continued: Transform -> Metadata ----
+    transform_info, dictionary = stage1_transform_and_metadata(df, mapping, kept, source_name, context, stats, qreport)
+
     records = {r.fund_id: r for r in scope}
     ids = [] if stage1_only else [r.fund_id for r in scope if r.status != "quarantined"]
     if stage1_only:
@@ -111,6 +173,7 @@ def run(source: str, mapping_path: str | None = None, limit: int | None = None, 
                "mapping_checks": [asdict(c) for c in checks], "mapping_used": mapping,
                "profiler_rounds": profiler_rounds, "context": context, "funds": len(results),
                "quality": {"stats": stats, "report": qreport},
+               "transform": transform_info, "data_dictionary": dictionary,
                "quality_issues": [i for i in quality.to_rows(issues) if i["fund_id"] in scope_ids or i["action"] == "drop"],
                "seconds": round(time.time() - started, 1),
                "decisions": pd.Series([r["decision"]["decision"] for r in results]).value_counts().to_dict()}

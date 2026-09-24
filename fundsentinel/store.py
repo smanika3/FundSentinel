@@ -32,6 +32,11 @@ SCHEMA_SQL = [
     """CREATE TABLE IF NOT EXISTS review_events (
         run_id text, fund_id text, seq int, actor text, event text, reviewer text, detail text, t double precision,
         PRIMARY KEY (run_id, fund_id, seq))""",
+    """CREATE TABLE IF NOT EXISTS column_metadata (
+        run_id text, name text, kind text, source_column text, how text, coverage real, examples jsonb,
+        flagged_records int, description text, unit text, caveats text, PRIMARY KEY (run_id, name))""",
+    "ALTER TABLE runs ADD COLUMN IF NOT EXISTS dataset_description text",
+    "ALTER TABLE runs ADD COLUMN IF NOT EXISTS transform jsonb",
     "ALTER TABLE funds ADD COLUMN IF NOT EXISTS status text",
     "ALTER TABLE decisions ADD COLUMN IF NOT EXISTS supervisor jsonb",
     "ALTER TABLE verdicts ADD COLUMN IF NOT EXISTS evidence_ok boolean",
@@ -123,6 +128,20 @@ def save_run(summary: dict, results: list[dict]):
             for r in results])
     if summary.get("quality"):
         sql("UPDATE runs SET quality = :q WHERE run_id = :run_id", {"q": summary["quality"], "run_id": run_id})
+    dd = summary.get("data_dictionary")
+    if dd:
+        sql("UPDATE runs SET dataset_description = :d, transform = :t WHERE run_id = :run_id",
+            {"d": dd.get("dataset_description"), "t": summary.get("transform") or {}, "run_id": run_id})
+        _batch("""INSERT INTO column_metadata VALUES (:run_id, :name, :kind, :source_column, :how, :coverage, :examples,
+                    :flagged_records, :description, :unit, :caveats)
+                  ON CONFLICT (run_id, name) DO UPDATE SET kind=EXCLUDED.kind, source_column=EXCLUDED.source_column,
+                    how=EXCLUDED.how, coverage=EXCLUDED.coverage, examples=EXCLUDED.examples,
+                    flagged_records=EXCLUDED.flagged_records, description=EXCLUDED.description, unit=EXCLUDED.unit,
+                    caveats=EXCLUDED.caveats""",
+               [{"run_id": run_id, "name": c["name"], "kind": c["kind"], "source_column": c.get("source_column"),
+                 "how": c.get("how"), "coverage": float(c["coverage"]), "examples": c.get("examples") or [],
+                 "flagged_records": int(c.get("flagged_records") or 0), "description": c.get("description"),
+                 "unit": c.get("unit"), "caveats": c.get("caveats")} for c in dd["columns"]])
     if summary.get("quality_issues"):
         _batch("""INSERT INTO quality_issues VALUES (:run_id, :issue_id, :fund_id, :row_num, :field, :kind, :detail, :raw,
                     :candidates, :action, :new_value, :confidence, :decided_by, :reason)
@@ -188,6 +207,8 @@ def save_s3(summary: dict, results: list[dict]):
     put(f"reports/{run_id}/decisions.jsonl", jsonl([r["decision"] for r in results]))
     put(f"reports/{run_id}/summary.json", json.dumps(summary, indent=2, default=str))
     put(f"metadata/{run_id}/quality_report.json", json.dumps(summary.get("quality"), indent=2, default=str))
+    put(f"metadata/{run_id}/data_dictionary.json", json.dumps(summary.get("data_dictionary"), indent=2, default=str))
+    put(f"metadata/{run_id}/transform.json", json.dumps(summary.get("transform"), indent=2, default=str))
     put(f"metadata/{run_id}/quality_issues.jsonl", jsonl(summary.get("quality_issues") or []))
     quarantined = [r["record"] for r in results if r["decision"]["decision"] == "quarantined"]
     if quarantined:

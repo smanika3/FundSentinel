@@ -48,7 +48,8 @@ decisions = q("""SELECT d.fund_id, f.fund_name, f.category, d.decision, d.decide
                  FROM decisions d JOIN funds f USING (run_id, fund_id) WHERE d.run_id = :r ORDER BY d.fund_id""", r=run_id)
 verdicts = q("SELECT fund_id, reviewer, verdict, reason, evidence, confidence FROM verdicts WHERE run_id = :r", r=run_id)
 
-tab_decisions, tab_fund, tab_quality, tab_mapping = st.tabs(["Decisions", "Fund story", "Data quality", "Column mapping"])
+tab_decisions, tab_fund, tab_quality, tab_dict, tab_mapping = st.tabs(
+    ["Decisions", "Fund story", "Data quality", "Data dictionary", "Column mapping"])
 
 with tab_decisions:
     counts = decisions.decision.value_counts()
@@ -138,6 +139,27 @@ with tab_quality:
             st.caption("decided_by: **rule** = fixed code rule · **selfheal** = SelfHeal agent · "
                        "**guardrail** = code overruled the agent · **quality** = found by the Quality agent")
             st.dataframe(issues, width="stretch", hide_index=True)
+
+with tab_dict:
+    meta = q("SELECT dataset_description, transform FROM runs WHERE run_id = :r", r=run_id)
+    cols = q("""SELECT name, kind, description, unit, coverage, source_column, how, caveats, flagged_records
+                FROM column_metadata WHERE run_id = :r ORDER BY kind DESC, name""", r=run_id)
+    if cols.empty:
+        st.info("No data dictionary for this run (it predates the Metadata agent).")
+    else:
+        st.write(meta["dataset_description"].iloc[0])
+        st.caption("Written by the Metadata agent from facts computed in code (coverage, source column, conversions, flags).")
+        st.dataframe(cols, width="stretch", hide_index=True,
+                     column_config={"coverage": st.column_config.ProgressColumn("coverage", min_value=0, max_value=1, format="%.0f%%")})
+        tr = _json(meta["transform"].iloc[0]) or {}
+        sugg = tr.get("suggested") or []
+        if sugg:
+            st.markdown("#### New columns proposed by the Transform agent")
+            st.caption("Every proposal is validated in code (known fields only, + - * / only, at least 50% coverage).")
+            st.dataframe(pd.DataFrame([{"column": x["name"], "accepted": bool(x.get("accepted")),
+                                        "how": x.get("formula") or x.get("column"), "coverage": x.get("coverage"),
+                                        "why / why not": x.get("reason") or x.get("why_useful")} for x in sugg]),
+                         width="stretch", hide_index=True)
 
 with tab_mapping:
     st.markdown("How each source column was mapped onto the standard schema, and whether the code check accepted it.")
