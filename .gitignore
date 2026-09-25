@@ -51,3 +51,6 @@ next-env.d.ts
 # Claude Design export (web/components/ds.js is the converted copy we use)
 FundSentinel Design System.zip
 design/
+
+# Screenshots and clips for the pitch deck (local only)
+deck_media/

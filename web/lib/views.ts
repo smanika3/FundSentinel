@@ -141,7 +141,7 @@ const WORDS: [RegExp, string][] = [
   [/\bordinal\b/g, "ranked"], [/\bsimplistic proxy\b/g, "rough stand-in"], [/\bproxy\b/g, "stand-in"],
   [/\bvia value_map\b/g, "(word turned into a number)"], [/\bvalue_map\b/g, "word-to-number table"],
   [/\bmock fx\b/g, "demo exchange rate"], [/\bbps basis points\b/g, "basis points"],
-  [/\s?->\s?/g, " → "],
+  [/\s?->\s?/g, " → "], [/\bGuardrail:/g, "Safety rule:"],
 ];
 
 /** Plain words for agent- and pipeline-written text: field codes become labels ("expense_ratio" -> "fee"). */
@@ -149,7 +149,9 @@ export function plain(text?: string | null): string {
   let t = (text ?? "").replace(/\b[a-z]+(?:_[a-z0-9]+)+\b/g, (w) =>
     FIELD_LABEL[w] ? FIELD_LABEL[w].toLowerCase() : KIND_LABEL[w] ?? (w.startsWith("x_") ? label(w).toLowerCase() : w));
   for (const [re, to] of WORDS) t = t.replace(re, to);
-  return t;
+  // Words swapped in above ("the data repairer", "empty"…) can land at the start of a sentence.
+  return t.replace(/([.!?]\s+)(the data repairer|the column reader|the change checker|empty)\b/g,
+    (_m, end: string, w: string) => end + w.charAt(0).toUpperCase() + w.slice(1));
 }
 
 /** How a value was produced, from the pipeline's transform note ("derived: a / b - 1", "constant", "generated"). */

@@ -24,6 +24,9 @@ body = body.replace(nav_data, nav_data[:-2] + ", {\n  id: 'policy',\n  icon: 'sh
 # Plain wording for a reviewer whose verdict was reused in an update run.
 assert "label: 'Carried forward'," in body
 body = body.replace("label: 'Carried forward',", "label: 'Kept from last review',", 1)
+# Same name as the "Safety rule" badge elsewhere in the app.
+assert "label: 'Guardrail'" in body
+body = body.replace("label: 'Guardrail'", "label: 'Safety rule'", 1)
 exports = "\n".join(f"export const {n} = __ds_ns.{n};" for n in names)
 out = ("'use client';\n/* Generated from design/_ds_bundle.js by web/scripts_convert_ds.py. Do not edit by hand. */\n"
        "/* eslint-disable */\nimport * as React from 'react';\n\n" + body +

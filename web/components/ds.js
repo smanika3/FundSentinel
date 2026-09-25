@@ -850,7 +850,7 @@ const VARIANTS = {
     icon: 'shield-check',
     fg: 'var(--text-2)',
     bg: 'var(--bg-subtle)',
-    label: 'Guardrail'
+    label: 'Safety rule'
   },
   radar: {
     icon: 'history',
