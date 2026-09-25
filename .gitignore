@@ -54,3 +54,7 @@ design/
 
 # Screenshots and clips for the pitch deck (local only)
 deck_media/
+
+# Demo recordings (large; kept local)
+*.mp4
+*.mov

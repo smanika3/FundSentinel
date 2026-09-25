@@ -174,4 +174,4 @@ Running the same file twice updates the results in place instead of duplicating 
 
 ## Team
 
-Team Vitality: Debaleena Chakraborty, Saisrivathsan Manikandan and Shrey Bishnoi.
+Team Vitality: Debaleena Chakraborty, Shrey Bishnoi, Saisrivathsan Manikandan and Maulik Jadav.
